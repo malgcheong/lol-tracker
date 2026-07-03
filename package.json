@@ -1,0 +1,15 @@
+{
+  "name": "lol-tracker",
+  "version": "0.1.0",
+  "description": "롤 자기관리 트래커 - 도박성 패턴을 감지해 캐릭터가 말려주는 자기구속 장치",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

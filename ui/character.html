@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>캐릭터</title>
+<style>
+  /* 투명 창: 배경 없음. 캐릭터와 말풍선만 떠 있는 것처럼 보임 */
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body { background: transparent; overflow: hidden; height: 100%; }
+  body {
+    font-family: 'Malgun Gothic', sans-serif;
+    display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+    padding-bottom: 14px;
+    -webkit-app-region: drag; /* 빈 공간을 잡고 끌면 창 이동 */
+  }
+
+  /* 말풍선 (컨셉시트 톤: 연보라 테두리) */
+  #bubble {
+    -webkit-app-region: no-drag;
+    max-width: 320px;
+    background: #fffdfd;
+    border: 2.5px solid #c9b8ef;
+    border-radius: 16px;
+    padding: 12px 15px;
+    font-size: 14px; line-height: 1.55; color: #4a3d6b;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 14px rgba(90,70,140,.25);
+    opacity: 0; transition: opacity .25s;
+  }
+  #bubble.show { opacity: 1; }
+  #bubble b { color: #7a4fd0; }
+
+  /* 버튼 */
+  #buttons { -webkit-app-region: no-drag; display: none; gap: 8px; margin-bottom: 8px; }
+  #buttons.show { display: flex; }
+  #buttons button {
+    border: 2px solid #c9b8ef; border-radius: 12px; padding: 8px 13px;
+    font-size: 13px; cursor: pointer; background: #fffdfd; color: #4a3d6b;
+    box-shadow: 0 2px 8px rgba(90,70,140,.2);
+  }
+  #buttons button:hover { background: #efe8fc; }
+
+  /* ---- 캐릭터: 컨셉시트 v1 (보라 물방울 이무기, 포탈 위 부유) ---- */
+  #char { -webkit-app-region: no-drag; position: relative; width: 200px; height: 215px; cursor: pointer;
+          transition: transform .3s, opacity .3s; }
+  #char.small-mode { transform: scale(.6); opacity: .8; }
+
+  /* 본체만 떠다니고 포탈은 바닥에 남는다 */
+  #chara { transform-box: fill-box; transform-origin: center; animation: floaty 3s ease-in-out infinite; }
+  #char.bounce-mode #chara { animation: floaty 2s ease-in-out infinite; }
+  #char.angry-mode #chara { animation: shake .35s infinite; }
+  #char.happy-mode #chara { animation: wiggle .55s; }
+  #char.queue-mode #chara { animation: spinq 1.7s linear infinite; } /* 큐 "돌리기" */
+  #char.boxing-mode #chara { animation: bob .5s infinite; }
+  @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
+  @keyframes spinq { to { transform: rotate(360deg); } }
+  @keyframes bob { 0%,100%{transform:translate(0,0)} 25%{transform:translate(-7px,3px)} 75%{transform:translate(7px,3px)} }
+
+  /* 포탈은 은은하게 일렁임 */
+  #portal { transform-box: fill-box; transform-origin: center; animation: ripple 3s ease-in-out infinite; }
+  @keyframes ripple { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(1.05)} }
+
+  /* 팔 흔들기 */
+  .arm-l, .arm-r { transform-box: fill-box; transform-origin: center; }
+  #char.bounce-mode .arm-l, #char.happy-mode .arm-l { animation: waveArm .7s ease-in-out infinite; } /* 인사 */
+  #char.happy-mode .arm-r { animation: waveArm .7s ease-in-out infinite reverse; }
+  #char.angry-mode .arm-l { animation: flail .3s linear infinite; } /* 버둥버둥 */
+  #char.angry-mode .arm-r { animation: flail .3s linear infinite reverse; }
+  #char.boxing-mode .arm-l, #char.boxing-mode .arm-r { display: none; } /* 복싱 땐 글러브가 팔 */
+  @keyframes waveArm { 0%,100%{transform:rotate(-16deg)} 50%{transform:rotate(12deg)} }
+  @keyframes flail { 0%,100%{transform:rotate(-20deg)} 50%{transform:rotate(20deg)} }
+
+  /* 반짝이 */
+  .spark { animation: twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .spark.s2 { animation-delay: 1.2s; }
+  @keyframes twinkle { 0%,100%{opacity:.25; transform:scale(.8)} 50%{opacity:1; transform:scale(1.15)} }
+
+  /* ---- 표정 전환 (기본: 방긋) ---- */
+  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
+  /* 깜빡임 */
+  #char.blink .f-eyes-open { display: none; }
+  #char.blink .f-eyes-sleep { display: block; }
+  /* 쓰다듬: 방긋 눈웃음 */
+  #char.happy-mode .f-eyes-open { display: none; }
+  #char.happy-mode .f-eyes-happy { display: block; }
+  /* 제한 도달(개입): 찡그림 + 물결입 + ! 배지 */
+  #char.angry-mode .f-eyes-open { display: none; }
+  #char.angry-mode .f-eyes-shut, #char.angry-mode .f-mouth-wave, #char.angry-mode #badge { display: block; }
+  #char.angry-mode .f-mouth-smile { display: none; }
+  /* 매칭 잡힘: 놀란 O 입 */
+  #char.boxing-mode .f-mouth-smile { display: none; }
+  #char.boxing-mode .f-mouth-o { display: block; }
+  /* 잠 */
+  #char.sleep-mode .f-eyes-open, #char.sleep-mode .f-mouth-smile { display: none; }
+  #char.sleep-mode .f-eyes-sleep, #char.sleep-mode .f-mouth-tiny { display: block; }
+  /* 고민 */
+  #char.think-mode .f-mouth-smile { display: none; }
+  #char.think-mode .f-mouth-tiny { display: block; }
+
+  #eyes { transition: transform .15s ease-out; }
+
+  /* 오버레이 소품 */
+  .zzz { position: absolute; top: 2px; right: 18px; font-size: 20px; font-weight: bold; color: #a48fd0;
+         display: none; text-shadow: 0 1px 2px rgba(255,255,255,.7); }
+  #char.sleep-mode .zzz { display: block; animation: floaty 2s infinite; }
+
+  .glove-l, .glove-r { display: none; transform-box: fill-box; transform-origin: center; }
+  #char.boxing-mode .glove-l { display: block; animation: jabL .5s infinite; }
+  #char.boxing-mode .glove-r { display: block; animation: jabR .5s infinite; }
+  @keyframes jabL { 0%,100%{transform:translate(0,0)} 25%{transform:translate(20px,-14px)} }
+  @keyframes jabR { 0%,100%{transform:translate(0,0)} 75%{transform:translate(-20px,-14px)} }
+
+  .qmark { display: none; position: absolute; top: -4px; left: 44px; font-size: 25px; font-weight: bold;
+           color: #fffdfd; -webkit-text-stroke: 2px #8b72c9; }
+  .qmark.q2 { left: auto; right: 40px; top: -20px; font-size: 19px; }
+  #char.think-mode .qmark { display: block; animation: floaty 1.6s infinite; }
+  #char.think-mode .qmark.q2 { animation-delay: .4s; }
+
+  .heart { position: absolute; font-size: 17px; pointer-events: none; animation: float 1s ease-out forwards; z-index: 5; }
+  @keyframes float { 0%{opacity:1; transform:translateY(0) scale(.7)} 100%{opacity:0; transform:translateY(-48px) scale(1.25)} }
+
+  /* 하단 정보줄 */
+  #chips { display: flex; gap: 6px; margin-top: 4px; -webkit-app-region: no-drag; }
+  .chip {
+    font-size: 10px; color: #fff; background: rgba(74,61,107,.55);
+    border-radius: 8px; padding: 2px 8px; max-width: 200px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  #drag-handle { -webkit-app-region: drag; cursor: grab; background: rgba(74,61,107,.75); }
+  #stats-chip.warn { background: rgba(178,58,75,.85); font-weight: bold; }
+</style>
+</head>
+<body>
+  <div id="bubble"></div>
+  <div id="buttons">
+    <button id="btn-snooze">15분 쉴게</button>
+    <button id="btn-force">그래도 할래 (0/3)</button>
+  </div>
+  <div id="char">
+    <svg width="200" height="215" viewBox="0 0 200 215">
+      <defs>
+        <radialGradient id="bodyGrad" cx="35%" cy="26%" r="90%">
+          <stop offset="0%" stop-color="#c7b2ec"/>
+          <stop offset="55%" stop-color="#a98fd6"/>
+          <stop offset="100%" stop-color="#8f72c0"/>
+        </radialGradient>
+        <clipPath id="bodyClip"><ellipse cx="100" cy="105" rx="74" ry="70"/></clipPath>
+      </defs>
+
+      <!-- 검은 포탈: 승천 못 한 이무기가 타고 다니는 웅덩이 -->
+      <g id="portal">
+        <ellipse cx="100" cy="196" rx="57" ry="13.5" fill="#3a2b4f"/>
+        <ellipse cx="100" cy="195.5" rx="41" ry="9.5" fill="#251b3b"/>
+        <ellipse cx="103" cy="195" rx="23" ry="5.5" fill="#140e26"/>
+      </g>
+
+      <g id="chara">
+        <!-- 팔: 왼쪽은 살짝 들고, 오른쪽은 내리고 (상태 따라 흔들림) -->
+        <g class="arm-l"><ellipse cx="21" cy="84" rx="11" ry="17" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-38 21 84)"/></g>
+        <g class="arm-r"><ellipse cx="180" cy="114" rx="11" ry="16" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(30 180 114)"/></g>
+
+        <!-- 몽글몽글 뿔 (가시 아님) -->
+        <ellipse cx="60" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(-25 60 30)"/>
+        <ellipse cx="140" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(25 140 30)"/>
+        <!-- 머리털 두 가닥 -->
+        <path d="M97 40 C 95 29, 88 21, 79 25" fill="none" stroke="#6b54a0" stroke-width="3.5" stroke-linecap="round"/>
+        <path d="M103 40 C 104 26, 112 18, 121 23" fill="none" stroke="#6b54a0" stroke-width="3.5" stroke-linecap="round"/>
+
+        <!-- 몸: 물방울 실루엣 -->
+        <ellipse cx="100" cy="105" rx="74" ry="70" fill="url(#bodyGrad)" stroke="#6b54a0" stroke-width="3.5"/>
+        <!-- 배 -->
+        <g clip-path="url(#bodyClip)">
+          <ellipse cx="100" cy="155" rx="54" ry="40" fill="#f0eaf9"/>
+        </g>
+        <!-- 광택 -->
+        <ellipse cx="64" cy="56" rx="30" ry="15" fill="#ffffff" opacity=".4" transform="rotate(-25 64 56)"/>
+        <circle cx="99" cy="43" r="5" fill="#ffffff" opacity=".5"/>
+
+        <!-- 볼터치 -->
+        <ellipse cx="45" cy="122" rx="11" ry="6.5" fill="#f2a9c4" opacity=".85"/>
+        <ellipse cx="155" cy="122" rx="11" ry="6.5" fill="#f2a9c4" opacity=".85"/>
+
+        <!-- 눈 (커서 따라 굴러감) -->
+        <g id="eyes">
+          <g class="f-eyes-open">
+            <circle cx="72" cy="100" r="15" fill="#241b38"/>
+            <circle cx="128" cy="100" r="15" fill="#241b38"/>
+            <circle cx="67" cy="94" r="5.2" fill="#fff"/>
+            <circle cx="123" cy="94" r="5.2" fill="#fff"/>
+            <circle cx="78" cy="106" r="2.5" fill="#fff" opacity=".9"/>
+            <circle cx="134" cy="106" r="2.5" fill="#fff" opacity=".9"/>
+          </g>
+          <g class="f-eyes-happy">
+            <path d="M59 101 Q72 89 85 101" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <path d="M115 101 Q128 89 141 101" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="f-eyes-shut">
+            <path d="M60 96 Q72 105 84 96" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <path d="M116 96 Q128 105 140 96" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="f-eyes-sleep">
+            <path d="M62 100 Q72 106 82 100" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+            <path d="M118 100 Q128 106 138 100" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- 입 -->
+        <g id="mouths">
+          <g class="f-mouth-smile">
+            <path d="M81 128 Q100 155 119 128 Q100 137 81 128 Z" fill="#6d3350" stroke="#4a2140" stroke-width="2"/>
+            <path d="M89 140 Q100 149 111 140 Q100 135 89 140 Z" fill="#f28aa9"/>
+            <path d="M87 129 l8 1 -3.5 9 Z" fill="#ffffff" stroke="#e8e0f0" stroke-width=".5"/> <!-- 송곳니 하나 -->
+          </g>
+          <g class="f-mouth-o">
+            <ellipse cx="100" cy="137" rx="8.5" ry="10.5" fill="#6d3350" stroke="#4a2140" stroke-width="2"/>
+          </g>
+          <g class="f-mouth-wave">
+            <path d="M80 137 q6.5 -8 13 0 q6.5 8 13 0 q6.5 -8 13 0" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="f-mouth-tiny">
+            <path d="M93 135 Q100 141 107 135" stroke="#241b38" stroke-width="4" fill="none" stroke-linecap="round"/>
+          </g>
+        </g>
+
+        <!-- 알림 배지 -->
+        <g id="badge">
+          <circle cx="163" cy="34" r="15" fill="#f5b12e" stroke="#fffdfd" stroke-width="3"/>
+          <text x="163" y="42" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">!</text>
+        </g>
+
+        <!-- 권투 글러브 (복싱 모드에서만) -->
+        <g class="glove-l">
+          <rect x="20" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(-30 28 128)"/>
+          <ellipse cx="31" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
+          <ellipse cx="42" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
+        </g>
+        <g class="glove-r">
+          <rect x="163" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(30 172 128)"/>
+          <ellipse cx="169" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
+          <ellipse cx="158" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
+        </g>
+
+        <!-- 반짝이 -->
+        <path class="spark s1" d="M28 48 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#cdbcf0"/>
+        <path class="spark s2" d="M178 62 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 Z" fill="#cdbcf0"/>
+      </g>
+    </svg>
+    <div class="qmark">?</div><div class="qmark q2">?</div>
+    <div class="zzz">z z</div>
+  </div>
+  <div id="chips">
+    <div class="chip" id="drag-handle">⠿ 이동</div>
+    <div class="chip" id="stats-chip">통계 없음</div>
+    <div class="chip" id="status">연결 대기...</div>
+  </div>
+
+<script>
+  const char = document.getElementById('char');
+  const bubble = document.getElementById('bubble');
+  const buttons = document.getElementById('buttons');
+  const btnForce = document.getElementById('btn-force');
+  const statusEl = document.getElementById('status');
+  const statsChip = document.getElementById('stats-chip');
+  const eyesG = document.getElementById('eyes');
+
+  let forceClicks = 0;
+  let forcedThrough = false; // "그래도 할래" 3번 뚫은 상태 (이번 매칭 동안 유지)
+  let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null } };
+  let pokeTimer = null;
+
+  // ---- 대사 (이무기 페르소나: '한 판만 더' 하다 승천 실패한 영물) ----
+  function violationLine(v, phase) {
+    if (v.type === 'lossStreak') {
+      if (phase === 'Lobby') return `너 지금 <b>${v.n}연패</b> 중인 거 알지? 나 여기 있을게.`;
+      return `<b>${v.n}연패</b> 중에 큐를 눌러? 본전 생각나서 그러는 거잖아. 나도 '한 판만 더' 하다가 용 못 됐어.`;
+    }
+    if (v.type === 'daily') {
+      if (phase === 'Lobby') return `오늘 벌써 <b>${v.n}판</b> 했어. 약속은 ${v.limit}판이었잖아.`;
+      return `오늘 <b>${v.n}판째</b>야. 네가 정한 약속은 ${v.limit}판. 이무기 눈엔 보여 — 이건 재미가 아니라 관성이야.`;
+    }
+    return '';
+  }
+
+  const POKE_LINES = {
+    normal: ['왜~', '심심해?', '나 용 되면 태워줄게. 네가 약속 지키면.', '물 마시고 와. 안 도망가.', '오늘도 잘 부탁해.'],
+    angry: ['지금 쓰다듬는다고 넘어갈 것 같아?', '흥.', '내 말 듣고는 있는 거야?'],
+    sleep: ['...zzz... 응? 왜.', '...승천하는 꿈 꿨는데. 아깝다.'],
+  };
+  const IDLE_LINES = ['...', '허리 펴.', '...비 오려나.', '오늘 컨디션 어때?'];
+
+  // ---- 상태 렌더링 ----
+  function render(state) {
+    lastState = state;
+    clearTimeout(pokeTimer);
+    const { phase, verdict } = state;
+    const bad = verdict.violations.length > 0;
+    const s = verdict.stats;
+
+    if (s) {
+      statsChip.textContent = `오늘 ${s.todayCount}판 · ${s.lossStreak}연패`;
+      statsChip.classList.toggle('warn', bad);
+    } else {
+      statsChip.textContent = verdict.error ? `통계 ✗ ${verdict.error}` : '통계 없음';
+      statsChip.classList.remove('warn');
+    }
+
+    let mode = 'sleep-mode';
+    let line = null;
+    let showButtons = false;
+
+    if (phase === 'Snoozing') {
+      line = '15분 쉬는 중... 잘 생각했어.';
+    } else if (phase === 'Lobby') {
+      forcedThrough = false;
+      if (bad) {
+        mode = 'angry-mode';
+        line = verdict.violations.map((v) => violationLine(v, 'Lobby')).join('<br>');
+      } else if (verdict.hasData) {
+        mode = 'bounce-mode';
+        line = `오늘 ${s.todayCount}판${s.lossStreak ? `, ${s.lossStreak}연패` : ''}. 아직 약속 안에 있어. 재밌게 해.`;
+      } else {
+        mode = 'bounce-mode';
+        line = '아직 네 전적을 몰라. 트레이 아이콘 → 설정에서 라이엇 ID랑 API 키 넣어줘.';
+      }
+    } else if (phase === 'Matchmaking') {
+      if (bad && !forcedThrough) {
+        mode = 'angry-mode';
+        line = verdict.violations.map((v) => violationLine(v, 'Matchmaking')).join('<br>');
+        showButtons = true;
+      } else if (bad && forcedThrough) {
+        mode = 'small-mode';
+        line = '...가라. 대신 이번 판 지면 나랑 얘기 좀 해.';
+      } else {
+        mode = 'queue-mode'; // 큐 돌리기: 같이 빙글빙글
+        line = '큐 돌리는 중~ 🌀';
+      }
+    } else if (phase === 'ReadyCheck') {
+      if (bad && !forcedThrough) {
+        mode = 'angry-mode';
+        line = '수락 전에 마지막으로 묻는다. 숨 한 번 쉬고 — 지금 이 멘탈로 이길 수 있어?';
+      } else {
+        mode = 'boxing-mode'; // 매칭 잡힘: 링에 들어갈 시간
+        line = '매칭 잡혔다! 쉭쉭. 가서 이기고 와.';
+      }
+    } else if (phase === 'ChampSelect') {
+      mode = 'think-mode'; // 챔피언 고민
+      line = '누구 하지... 이번엔 뭐가 좋을까.';
+    } else if (['GameStart', 'InProgress', 'Reconnect'].includes(phase)) {
+      mode = 'small-mode';
+      line = phase === 'GameStart' ? '시작이다. 게임 중엔 방해 안 할게.' : null;
+    } else if (phase === 'WaitingForStats' || phase === 'PreEndOfGame') {
+      mode = 'small-mode';
+    } else if (phase === 'EndOfGame') {
+      mode = 'bounce-mode';
+      line = bad
+        ? '한 판 끝. <b>여기서 멈추면</b> 오늘은 여의주 하나 모은 거야.'
+        : '한 판 끝. 오늘 어때, 할 만큼 했어?';
+    }
+
+    applyMode(mode);
+    setLine(line);
+
+    if (showButtons) {
+      forceClicks = 0;
+      btnForce.textContent = '그래도 할래 (0/3)';
+      buttons.classList.add('show');
+    } else {
+      buttons.classList.remove('show');
+    }
+  }
+
+  function applyMode(mode) {
+    char.className = '';
+    char.classList.add(mode);
+  }
+  function setLine(line) {
+    if (line) { bubble.innerHTML = line; bubble.classList.add('show'); }
+    else bubble.classList.remove('show');
+  }
+  function currentMode() {
+    return ['sleep-mode', 'small-mode', 'angry-mode', 'bounce-mode', 'happy-mode', 'queue-mode', 'boxing-mode', 'think-mode']
+      .find((m) => char.classList.contains(m)) || 'sleep-mode';
+  }
+
+  // ---- 인터랙션: 찌르기/쓰다듬기 ----
+  char.addEventListener('click', (e) => {
+    const mode = currentMode();
+    const angry = mode === 'angry-mode';
+    const sleeping = mode === 'sleep-mode';
+
+    const pool = angry ? POKE_LINES.angry : sleeping ? POKE_LINES.sleep : POKE_LINES.normal;
+    setLine(pool[Math.floor(Math.random() * pool.length)]);
+
+    if (!angry) {
+      const rect = char.getBoundingClientRect();
+      spawnSpark(e.clientX - rect.left, e.clientY - rect.top);
+      if (!sleeping) applyMode('happy-mode');
+    }
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 3000);
+  });
+
+  function spawnSpark(x, y) {
+    const h = document.createElement('div');
+    h.className = 'heart';
+    h.textContent = ['💜', '✨', '🤍'][Math.floor(Math.random() * 3)];
+    h.style.left = (x + (Math.random() * 24 - 12)) + 'px';
+    h.style.top = (y - 10) + 'px';
+    char.appendChild(h);
+    setTimeout(() => h.remove(), 1000);
+  }
+
+  // ---- 눈 깜빡임 ----
+  (function blinkLoop() {
+    setTimeout(() => {
+      if (currentMode() !== 'sleep-mode') {
+        char.classList.add('blink');
+        setTimeout(() => char.classList.remove('blink'), 140);
+      }
+      blinkLoop();
+    }, 2500 + Math.random() * 3500);
+  })();
+
+  // ---- 눈동자가 커서를 따라 굴러감 ----
+  window.tracker.onCursor(({ x, y }) => {
+    if (char.classList.contains('think-mode')) {
+      eyesG.style.transform = 'translate(0px, -5px)'; // 고민 중엔 하늘 보기
+      return;
+    }
+    const rect = char.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height * 0.45;
+    const angle = Math.atan2(y - cy, x - cx);
+    const dist = Math.hypot(x - cx, y - cy);
+    const r = Math.min(4, dist / 50);
+    eyesG.style.transform = `translate(${Math.cos(angle) * r}px, ${Math.sin(angle) * r}px)`;
+  });
+
+  // ---- 가끔 혼잣말 (평화로울 때만) ----
+  (function idleLoop() {
+    setTimeout(() => {
+      const mode = currentMode();
+      if ((mode === 'sleep-mode' || mode === 'bounce-mode') && !bubble.classList.contains('show')) {
+        setLine(IDLE_LINES[Math.floor(Math.random() * IDLE_LINES.length)]);
+        setTimeout(() => render(lastState), 4000);
+      }
+      idleLoop();
+    }, 45000 + Math.random() * 45000);
+  })();
+
+  // ---- 버튼 ----
+  document.getElementById('btn-snooze').addEventListener('click', () => {
+    window.tracker.snooze(15);
+  });
+
+  // "그래도 할래" 마찰 장치: 3번 눌러야 캐릭터가 비켜줌 (핸드오프 문서 6-3 '강' 단계)
+  btnForce.addEventListener('click', () => {
+    forceClicks++;
+    if (forceClicks >= 3) {
+      forcedThrough = true;
+      buttons.classList.remove('show');
+      applyMode('small-mode');
+      setLine('...가라. 대신 이번 판 지면 나랑 얘기 좀 해.');
+    } else {
+      btnForce.textContent = `그래도 할래 (${forceClicks}/3)`;
+      setLine(forceClicks === 1
+        ? '진심이야? 한 번 더 생각해.'
+        : '연패 중엔 실력보다 멘탈이 판을 져. 내가 겪어봐서 알아.');
+    }
+  });
+
+  window.tracker.onState(render);
+  window.tracker.onStatus((msg) => { statusEl.textContent = msg; });
+
+  render(lastState);
+</script>
+</body>
+</html>

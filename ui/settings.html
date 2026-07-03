@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>롤 트래커 설정</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background: #1e2328; color: #f0e6d2; margin: 0; }
+  h1 { font-size: 16px; margin: 0 0 16px; color: #c8aa6e; }
+  label { display: block; font-size: 13px; margin: 14px 0 4px; color: #c8aa6e; }
+  .hint { font-size: 11px; color: #a09b8c; margin-top: 3px; line-height: 1.5; }
+  input {
+    width: 100%; padding: 9px 10px; font-size: 14px;
+    background: #0f1216; color: #f0e6d2; border: 1px solid #785a28; border-radius: 6px;
+  }
+  input:focus { outline: none; border-color: #c8aa6e; }
+  .row { display: flex; gap: 12px; }
+  .row > div { flex: 1; }
+  .btns { display: flex; gap: 10px; margin-top: 22px; }
+  button {
+    flex: 1; padding: 11px; font-size: 14px; cursor: pointer;
+    border: 1px solid #785a28; border-radius: 6px; background: #3c3c41; color: #f0e6d2;
+  }
+  button:hover { background: #785a28; }
+  button.primary { background: #785a28; font-weight: bold; }
+  button.primary:hover { background: #c8aa6e; color: #1e2328; }
+  #result { margin-top: 14px; font-size: 13px; line-height: 1.6; padding: 10px 12px; border-radius: 6px; display: none; }
+  #result.ok { display: block; background: #12351f; color: #7fd18b; }
+  #result.err { display: block; background: #3a1a1a; color: #e88; }
+  .keybox { background: #26221a; border: 1px solid #785a28; border-radius: 6px; padding: 10px 12px; font-size: 12px; color: #d8cbb0; line-height: 1.7; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <h1>설정</h1>
+
+  <label>라이엇 ID</label>
+  <input id="riotId" placeholder="닉네임#KR1">
+  <div class="hint">클라이언트 프로필에 보이는 <b>닉네임#태그</b> 그대로.</div>
+
+  <label>Riot API 키</label>
+  <input id="apiKey" placeholder="RGAPI-xxxxxxxx-...">
+  <div class="keybox">
+    <b>발급 방법:</b> developer.riotgames.com 접속 → 라이엇 계정 로그인 →
+    첫 화면의 <b>Development API Key</b> 복사해서 여기 붙여넣기.<br>
+    ⚠️ 개발 키는 <b>24시간마다 만료</b>됨. 캐릭터가 "키 만료" 상태를 알려주면 같은 페이지에서
+    Regenerate 눌러 새 키를 다시 붙여넣으면 됨. (키는 이 PC의 settings.json에만 저장됨)
+  </div>
+
+  <div class="row">
+    <div>
+      <label>하루 판수 한도</label>
+      <input id="dailyLimit" type="number" min="0" max="30">
+      <div class="hint">이 판수를 채우면 개입. 0 = 끔</div>
+    </div>
+    <div>
+      <label>연패 한도</label>
+      <input id="lossStreakLimit" type="number" min="0" max="10">
+      <div class="hint">이만큼 연패 중이면 개입. 0 = 끔</div>
+    </div>
+  </div>
+
+  <label>하루 리셋 시각</label>
+  <input id="dayResetHour" type="number" min="0" max="23">
+  <div class="hint">5 = 새벽 5시. 자정 넘긴 심야 게임도 "오늘 판수"에 계속 쌓이게 하는 장치.</div>
+
+  <div class="btns">
+    <button id="btn-test">연결 테스트</button>
+    <button id="btn-save" class="primary">저장</button>
+  </div>
+  <div id="result"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour'];
+
+  function readForm() {
+    return {
+      riotId: $('riotId').value.trim(),
+      apiKey: $('apiKey').value.trim(),
+      dailyLimit: Number($('dailyLimit').value),
+      lossStreakLimit: Number($('lossStreakLimit').value),
+      dayResetHour: Number($('dayResetHour').value),
+    };
+  }
+
+  function showResult(ok, html) {
+    const el = $('result');
+    el.className = ok ? 'ok' : 'err';
+    el.innerHTML = html;
+  }
+
+  window.tracker.getSettings().then((s) => {
+    fields.forEach((f) => { $(f).value = s[f]; });
+  });
+
+  $('btn-test').addEventListener('click', async () => {
+    showResult(true, '조회 중...');
+    const res = await window.tracker.testStats(readForm());
+    if (res.ok) {
+      const { todayCount, lossStreak } = res.result;
+      showResult(true, `연결 성공! 오늘 <b>${todayCount}판</b>, 현재 <b>${lossStreak}연패</b>`);
+    } else {
+      showResult(false, `실패: ${res.error}`);
+    }
+  });
+
+  $('btn-save').addEventListener('click', async () => {
+    await window.tracker.saveSettings(readForm());
+    showResult(true, '저장됨. 통계를 새로 불러오는 중...');
+  });
+</script>
+</body>
+</html>

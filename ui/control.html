@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>가짜 롤 클라이언트 조종판</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 16px; background: #1e2328; color: #f0e6d2; }
+  h1 { font-size: 15px; margin: 0 0 4px; }
+  h2 { font-size: 13px; margin: 18px 0 6px; color: #c8aa6e; border-top: 1px solid #3c3c41; padding-top: 14px; }
+  p { font-size: 12px; color: #a09b8c; margin: 0 0 14px; line-height: 1.5; }
+  button {
+    display: block; width: 100%; margin-bottom: 8px; padding: 10px;
+    font-size: 14px; cursor: pointer; text-align: left;
+    background: #3c3c41; color: #f0e6d2; border: 1px solid #785a28; border-radius: 6px;
+  }
+  button:hover { background: #785a28; }
+  button.active { background: #c8aa6e; color: #1e2328; font-weight: bold; }
+  #now { margin-top: 10px; font-size: 13px; color: #c8aa6e; }
+  .stat-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; font-size: 13px; }
+  .stat-row label { flex: 1; }
+  .stat-row input {
+    width: 70px; padding: 6px; font-size: 14px; text-align: center;
+    background: #0f1216; color: #f0e6d2; border: 1px solid #785a28; border-radius: 6px;
+  }
+  #apply-stats { text-align: center; }
+</style>
+</head>
+<body>
+  <h1>가짜 롤 클라이언트 (mock)</h1>
+  <p>진짜 롤에서 일어나는 상태 변화를 버튼으로 흉내 냅니다.</p>
+
+  <button data-phase="None">클라이언트 켜짐 (아무것도 안 함)</button>
+  <button data-phase="Lobby">로비 진입</button>
+  <button data-phase="Matchmaking">큐 돌리기 시작! ← 핵심 순간</button>
+  <button data-phase="ReadyCheck">매칭 잡힘 (수락 대기)</button>
+  <button data-phase="ChampSelect">챔피언 선택</button>
+  <button data-phase="InProgress">인게임</button>
+  <button data-phase="EndOfGame">게임 종료</button>
+
+  <div id="now">현재 phase: None</div>
+
+  <h2>가짜 통계 (연패/판수 상황 흉내)</h2>
+  <p>실제로는 Riot API가 계산하는 값. 여기서 조작해서<br>캐릭터가 조건에 맞게만 화내는지 확인.</p>
+  <div class="stat-row">
+    <label>오늘 판수</label>
+    <input id="fake-today" type="number" value="0" min="0" max="30">
+  </div>
+  <div class="stat-row">
+    <label>현재 연패</label>
+    <input id="fake-streak" type="number" value="0" min="0" max="15">
+  </div>
+  <button id="apply-stats">가짜 통계 적용</button>
+
+<script>
+  const nowEl = document.getElementById('now');
+  const phaseBtns = document.querySelectorAll('button[data-phase]');
+
+  phaseBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      window.tracker.setPhase(btn.dataset.phase);
+    });
+  });
+
+  document.getElementById('apply-stats').addEventListener('click', () => {
+    window.tracker.setStats({
+      todayCount: Number(document.getElementById('fake-today').value),
+      lossStreak: Number(document.getElementById('fake-streak').value),
+    });
+  });
+
+  window.tracker.onState(({ phase }) => {
+    nowEl.textContent = '현재 phase: ' + phase;
+    phaseBtns.forEach((b) => b.classList.toggle('active', b.dataset.phase === phase));
+  });
+</script>
+</body>
+</html>

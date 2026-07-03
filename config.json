@@ -1,0 +1,5 @@
+{
+  "mode": "mock",
+  "leaguePath": null,
+  "_설명": "mode: 'mock'(회사, 가짜 클라이언트 조종판) 또는 'real'(집, 진짜 롤 클라이언트). leaguePath: 롤이 기본 경로(C:\\Riot Games\\League of Legends)가 아니면 설치 폴더를 적어줄 것."
+}
