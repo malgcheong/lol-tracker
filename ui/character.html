@@ -136,6 +136,10 @@
   #char.e2 .glove-l { transform: translate(26px, -8px); }
   #char.e2 .glove-r { transform: translate(-26px, -8px); }
   #char.boxing-mode .im-paw { display: none; } /* 복싱 땐 글러브가 손 */
+  /* 몽실이는 입 밑 팔(여의주 안던 자리)에서 글러브가 나옴. 여의주는 잠깐 내려놓음 */
+  #char.e1 .glove-l { transform: translate(36px, 38px); }
+  #char.e1 .glove-r { transform: translate(-36px, 38px); }
+  #char.e1.boxing-mode .held { display: none; }
   @keyframes jabL { 0%,100%{transform:translate(0,0)} 25%{transform:translate(20px,-14px)} }
   @keyframes jabR { 0%,100%{transform:translate(0,0)} 75%{transform:translate(-20px,-14px)} }
 
