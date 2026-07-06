@@ -28,10 +28,19 @@ try {
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(DEFAULT_SETTINGS, null, 2));
 }
 
-// ---- 여의주 (약속 지킨 날마다 수집, state.json에 저장) ----
+// ---- 여의주 = 연속 지킴 (streak을 state.json에 저장, 여의주는 계산값) ----
+// 연속 7일 → 1개(몽실이) / 14일 → 2개(몽무기) / 28일 → 3개. 하루라도 초과하면 즉시 0으로 리셋.
 const STATE_PATH = path.join(__dirname, 'state.json');
-let orbState = { orbs: 0, lastSeen: null }; // lastSeen: { day, count } - 마지막으로 본 '논리적 하루'와 그날 판수
-try { orbState = { ...orbState, ...JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) }; } catch {}
+let orbState = { streak: 0, lastSeen: null }; // lastSeen: { day, count } - 마지막으로 본 '논리적 하루'와 그날 판수
+try {
+  const loaded = JSON.parse(fs.readFileSync(STATE_PATH, 'utf8'));
+  orbState = { streak: 0, lastSeen: null, ...loaded };
+  // 구버전(orbs 저장) 마이그레이션
+  if (loaded.orbs != null && loaded.streak == null) {
+    orbState.streak = loaded.orbs >= 3 ? 28 : loaded.orbs === 2 ? 14 : loaded.orbs === 1 ? 7 : 0;
+  }
+} catch {}
+function orbsOf(streak) { return streak >= 28 ? 3 : streak >= 14 ? 2 : streak >= 7 ? 1 : 0; }
 function saveOrbState() {
   // mock 모드는 조종판 미리보기용이라 파일에 안 씀 — 실제 진행도(state.json)를 안 건드림
   if (config.mode === 'mock') return;
@@ -154,7 +163,12 @@ async function updateBlocker() {
 function pushState() {
   updateBlocker(); // 창 위치/표시 갱신 (스누즈 중이어도 숨김 처리 위해 먼저 호출)
   if (Date.now() < snoozeUntil) return; // 스누즈 중엔 캐릭터 대사는 조용히
-  broadcast('state', { phase: lastPhase, verdict: computeVerdict(), orbs: orbState.orbs });
+  broadcast('state', {
+    phase: lastPhase,
+    verdict: computeVerdict(),
+    orbs: orbsOf(orbState.streak),
+    streak: orbState.streak,
+  });
 }
 
 // ---- 통계 새로고침 ----
@@ -167,15 +181,26 @@ async function refreshStats(reason) {
     stats = await riot.refresh(settings);
     statsError = null;
     console.log(`[stats] ${reason}: 오늘 ${stats.todayCount}판, ${stats.lossStreak}연패`);
-    // 하루가 넘어갔으면 어제를 정산: 게임을 했는데 약속 안에서 멈췄으면 여의주 +1
+    // 하루가 넘어갔으면 어제를 정산: 게임을 했고 약속 안에서 멈췄으면 연속 +1
+    // (아예 안 한 날은 연속 유지 — 부재는 절제가 아니라서 +1은 없음)
     const day = dayKey();
+    const limit = settings.dailyLimit;
     if (orbState.lastSeen && orbState.lastSeen.day !== day) {
       const y = orbState.lastSeen;
-      if (settings.dailyLimit > 0 && y.count > 0 && y.count <= settings.dailyLimit) {
-        orbState.orbs++;
-        console.log(`[orb] 어제(${y.day}) 약속 지킴 → 여의주 ${orbState.orbs}개`);
-        broadcast('orb-earned', orbState.orbs);
+      if (limit > 0 && y.count > 0 && y.count <= limit) {
+        const before = orbsOf(orbState.streak);
+        orbState.streak++;
+        const after = orbsOf(orbState.streak);
+        console.log(`[streak] 어제(${y.day}) 약속 지킴 → 연속 ${orbState.streak}일, 여의주 ${after}개`);
+        if (after > before) broadcast('orb-earned', { orbs: after, streak: orbState.streak });
+        else broadcast('day-kept', orbState.streak);
       }
+    }
+    // 한 번 실패하면 바로 리셋: 오늘 이미 한도를 넘었으면 그 즉시 0으로 (퇴화)
+    if (limit > 0 && stats.todayCount > limit && orbState.streak > 0) {
+      console.log(`[streak] 오늘 ${stats.todayCount}판 > 한도 ${limit} → 연속 기록 리셋`);
+      orbState.streak = 0;
+      broadcast('streak-reset', 0);
     }
     orbState.lastSeen = { day, count: stats.todayCount };
     saveOrbState();
@@ -302,16 +327,21 @@ ipcMain.on('mock-set-stats', (_e, fake) => {
   pushState();
 });
 
-// 조종판의 여의주 조작 (mock 테스트/단계 미리보기용)
-ipcMain.on('mock-set-orbs', (_e, n) => {
-  orbState.orbs = Math.max(0, Math.floor(n) || 0);
-  saveOrbState();
+// 조종판의 연속 기록 조작 (mock 테스트/단계 미리보기용 — 파일 저장 안 됨)
+ipcMain.on('mock-set-streak', (_e, n) => {
+  orbState.streak = Math.max(0, Math.floor(n) || 0);
   pushState();
 });
-ipcMain.on('mock-earn-orb', () => {
-  orbState.orbs++;
-  saveOrbState();
-  broadcast('orb-earned', orbState.orbs); // 획득 연출은 캐릭터가 알아서
+ipcMain.on('mock-day-keep', () => { // 하루 성공 연출
+  const before = orbsOf(orbState.streak);
+  orbState.streak++;
+  const after = orbsOf(orbState.streak);
+  if (after > before) broadcast('orb-earned', { orbs: after, streak: orbState.streak });
+  else broadcast('day-kept', orbState.streak);
+});
+ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
+  orbState.streak = 0;
+  broadcast('streak-reset', 0);
 });
 
 ipcMain.handle('settings-get', () => settings);

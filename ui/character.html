@@ -446,7 +446,7 @@
 
     const orbs = state.orbs || 0;
     tierClass = tierOf(orbs);
-    orbChip.textContent = `${nameOf(orbs)} · 여의주 ${orbs}`;
+    orbChip.textContent = `${nameOf(orbs)} · 연속 ${state.streak || 0}일 · 여의주 ${orbs}`;
 
     if (s) {
       statsChip.textContent = `오늘 ${s.todayCount}판 · ${s.lossStreak}연패`;
@@ -622,21 +622,44 @@
     }
   });
 
-  // 여의주 획득 연출: 어제 약속을 지켰을 때 (또는 조종판 연출 버튼)
-  window.tracker.onOrbEarned((n) => {
-    lastState = { ...lastState, orbs: n };
-    const evolved = tierOf(n) !== tierClass; // 이번 획득으로 단계가 바뀌었나
-    tierClass = tierOf(n);
-    orbChip.textContent = `${nameOf(n)} · 여의주 ${n}`;
+  // 여의주 획득(마일스톤 돌파) 연출: 연속 7/14/28일 달성
+  window.tracker.onOrbEarned(({ orbs, streak }) => {
+    lastState = { ...lastState, orbs, streak };
+    const evolved = tierOf(orbs) !== tierClass;
+    tierClass = tierOf(orbs);
+    orbChip.textContent = `${nameOf(orbs)} · 연속 ${streak}일 · 여의주 ${orbs}`;
     applyMode('happy-mode');
     setLine(evolved
-      ? `여의주 ${n}개째! <b>${nameOf(n)}</b>(으)로 진화했어. ${n >= 2 ? '수염 났지? 어엿한 이무기야. 용은... 네가 계속 지켜주면 언젠가.' : '고마워, 계속 부탁해.'}`
-      : `어제 약속 지켰네. <b>여의주 +1</b> — 이제 ${n}개야.`);
+      ? `연속 <b>${streak}일</b> — 여의주 ${orbs}개째! <b>${nameOf(orbs)}</b>(으)로 진화했어. ${orbs >= 2 ? '수염 났지? 어엿한 이무기야. 용은... 네가 계속 지켜주면 언젠가.' : '고마워, 계속 부탁해.'}`
+      : `연속 <b>${streak}일</b> 달성! 여의주 ${orbs}개째야. 대단한데?`);
     for (let i = 0; i < 6; i++) {
       setTimeout(() => spawnSpark(60 + Math.random() * 80, 40 + Math.random() * 80), i * 180);
     }
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 5000);
+  });
+
+  // 하루 지킴 (마일스톤 사이): 다음 여의주까지 남은 날 알려줌
+  window.tracker.onDayKept((streak) => {
+    lastState = { ...lastState, streak };
+    orbChip.textContent = `${nameOf(lastState.orbs || 0)} · 연속 ${streak}일 · 여의주 ${lastState.orbs || 0}`;
+    const next = streak < 7 ? 7 : streak < 14 ? 14 : streak < 28 ? 28 : null;
+    applyMode('happy-mode');
+    setLine(`어제도 약속 지켰네. 연속 <b>${streak}일</b>째!${next ? ` 여의주까지 ${next - streak}일 남았어.` : ' 이미 전설이야.'}`);
+    spawnSpark(80 + Math.random() * 40, 60);
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 4500);
+  });
+
+  // 실패: 연속 기록 깨짐 → 즉시 퇴화
+  window.tracker.onStreakReset(() => {
+    lastState = { ...lastState, orbs: 0, streak: 0 };
+    tierClass = null;
+    orbChip.textContent = `${nameOf(0)} · 연속 0일 · 여의주 0`;
+    applyMode('angry-mode');
+    setLine('...약속이 깨졌어. 여의주도, 내 모습도 원래대로 돌아갔어.<br>괜찮아. 내일부터 다시 하루씩 모으자.');
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 6000);
   });
 
   window.tracker.onState(render);

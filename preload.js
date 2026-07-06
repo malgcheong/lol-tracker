@@ -17,9 +17,12 @@ contextBridge.exposeInMainWorld('tracker', {
   // 조종판 (mock 전용)
   setPhase: (phase) => ipcRenderer.send('mock-set-phase', phase),
   setStats: (fake) => ipcRenderer.send('mock-set-stats', fake),
-  setOrbs: (n) => ipcRenderer.send('mock-set-orbs', n),
-  earnOrb: () => ipcRenderer.send('mock-earn-orb'),
-  onOrbEarned: (cb) => ipcRenderer.on('orb-earned', (_e, n) => cb(n)),
+  setStreak: (n) => ipcRenderer.send('mock-set-streak', n),
+  dayKeep: () => ipcRenderer.send('mock-day-keep'),
+  dayFail: () => ipcRenderer.send('mock-day-fail'),
+  onOrbEarned: (cb) => ipcRenderer.on('orb-earned', (_e, p) => cb(p)),
+  onDayKept: (cb) => ipcRenderer.on('day-kept', (_e, n) => cb(n)),
+  onStreakReset: (cb) => ipcRenderer.on('streak-reset', () => cb()),
 
   // 설정 화면
   getSettings: () => ipcRenderer.invoke('settings-get'),

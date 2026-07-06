@@ -52,14 +52,15 @@
   </div>
   <button id="apply-stats">가짜 통계 적용</button>
 
-  <h2>여의주 (성장 단계 미리보기)</h2>
-  <p>실제로는 약속 지킨 날마다 +1.<br>0 몽뿔이 / 1 몽실이 / 2~ 몽무기(최종)</p>
+  <h2>연속 지킴 (성장 단계 미리보기)</h2>
+  <p>연속 7일=여의주1(몽실이) / 14일=2(몽무기) / 28일=3.<br>한 번 실패하면 즉시 0으로 리셋(퇴화).</p>
   <div class="stat-row">
-    <label>여의주 개수</label>
-    <input id="fake-orbs" type="number" value="0" min="0" max="99">
+    <label>연속 일수</label>
+    <input id="fake-streak-days" type="number" value="0" min="0" max="99">
   </div>
-  <button id="apply-orbs">개수 적용</button>
-  <button id="earn-orb">+1 획득 연출 보기</button>
+  <button id="apply-streak">일수 적용</button>
+  <button id="day-keep">하루 성공 연출 (+1일)</button>
+  <button id="day-fail">실패 연출 (리셋)</button>
 
 <script>
   const nowEl = document.getElementById('now');
@@ -78,12 +79,11 @@
     });
   });
 
-  document.getElementById('apply-orbs').addEventListener('click', () => {
-    window.tracker.setOrbs(Number(document.getElementById('fake-orbs').value));
+  document.getElementById('apply-streak').addEventListener('click', () => {
+    window.tracker.setStreak(Number(document.getElementById('fake-streak-days').value));
   });
-  document.getElementById('earn-orb').addEventListener('click', () => {
-    window.tracker.earnOrb();
-  });
+  document.getElementById('day-keep').addEventListener('click', () => window.tracker.dayKeep());
+  document.getElementById('day-fail').addEventListener('click', () => window.tracker.dayFail());
 
   window.tracker.onState(({ phase }) => {
     nowEl.textContent = '현재 phase: ' + phase;
