@@ -661,6 +661,14 @@
     pokeTimer = setTimeout(() => render(lastState), 15000);
   });
 
+  // AI 판 피드백 (DeepSeek 키 있을 때만, 게임당 1콜)
+  window.tracker.onGameFeedback(({ text, win }) => {
+    applyMode(win ? 'happy-mode' : 'think-mode');
+    setLine(text);
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 18000);
+  });
+
   // 실패: 연속 기록 깨짐 → 즉시 퇴화
   window.tracker.onStreakReset(() => {
     lastState = { ...lastState, orbs: 0, streak: 0 };

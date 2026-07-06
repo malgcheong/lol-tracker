@@ -62,6 +62,7 @@
   <button id="day-keep">하루 성공 연출 (+1일)</button>
   <button id="day-fail">실패 연출 (리셋)</button>
   <button id="near-miss">역전패(near-miss) 연출 보기</button>
+  <button id="ai-feedback">AI 판 피드백 연출 보기</button>
 
 <script>
   const nowEl = document.getElementById('now');
@@ -86,6 +87,7 @@
   document.getElementById('day-keep').addEventListener('click', () => window.tracker.dayKeep());
   document.getElementById('day-fail').addEventListener('click', () => window.tracker.dayFail());
   document.getElementById('near-miss').addEventListener('click', () => window.tracker.mockNearMiss());
+  document.getElementById('ai-feedback').addEventListener('click', () => window.tracker.mockGameFeedback());
 
   window.tracker.onState(({ phase }) => {
     nowEl.textContent = '현재 phase: ' + phase;

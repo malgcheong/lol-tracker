@@ -95,6 +95,12 @@ RiotStats.prototype.getMatch = async function (id, puuid, apiKey) {
       duration: full.info.gameDuration,
       win: me ? me.win : true,
       remake: full.info.gameDuration < REMAKE_SECONDS,
+      // AI 피드백용 내 성적 요약
+      champ: me ? me.championName : '?',
+      k: me ? me.kills : 0,
+      d: me ? me.deaths : 0,
+      a: me ? me.assists : 0,
+      cs: me ? me.totalMinionsKilled + me.neutralMinionsKilled : 0,
     };
     this.matchCache.set(id, m);
   }

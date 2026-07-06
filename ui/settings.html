@@ -74,6 +74,11 @@
   <input id="dayResetHour" type="number" min="0" max="23">
   <div class="hint">5 = 새벽 5시. 자정 넘긴 심야 게임도 "오늘 판수"에 계속 쌓이게 하는 장치.</div>
 
+  <label>DeepSeek API 키 (선택)</label>
+  <input id="deepseekKey" placeholder="sk-...">
+  <div class="hint">넣으면 게임이 끝날 때마다 몽뿔이가 그 판 데이터를 보고 <b>AI 한마디</b>를 해줍니다 (게임당 1회 호출).<br>
+  발급: platform.deepseek.com → API Keys → Create. 비워두면 기능 꺼짐 — 기존 대사만 나옵니다.</div>
+
   <div class="row">
     <div>
       <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
@@ -102,7 +107,7 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour'];
+  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour', 'deepseekKey'];
 
   function readForm() {
     return {
@@ -114,6 +119,7 @@
       hardMode: $('hardMode').checked,
       nightTighten: $('nightTighten').checked,
       nightStartHour: Number($('nightStartHour').value),
+      deepseekKey: $('deepseekKey').value.trim(),
     };
   }
 

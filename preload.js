@@ -25,6 +25,8 @@ contextBridge.exposeInMainWorld('tracker', {
   onStreakReset: (cb) => ipcRenderer.on('streak-reset', () => cb()),
   onNearMiss: (cb) => ipcRenderer.on('near-miss', (_e, p) => cb(p)),
   mockNearMiss: () => ipcRenderer.send('mock-near-miss'),
+  onGameFeedback: (cb) => ipcRenderer.on('game-feedback', (_e, p) => cb(p)),
+  mockGameFeedback: () => ipcRenderer.send('mock-game-feedback'),
 
   // 설정 화면
   getSettings: () => ipcRenderer.invoke('settings-get'),
