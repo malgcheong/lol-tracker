@@ -23,6 +23,8 @@ contextBridge.exposeInMainWorld('tracker', {
   onOrbEarned: (cb) => ipcRenderer.on('orb-earned', (_e, p) => cb(p)),
   onDayKept: (cb) => ipcRenderer.on('day-kept', (_e, n) => cb(n)),
   onStreakReset: (cb) => ipcRenderer.on('streak-reset', () => cb()),
+  onNearMiss: (cb) => ipcRenderer.on('near-miss', (_e, p) => cb(p)),
+  mockNearMiss: () => ipcRenderer.send('mock-near-miss'),
 
   // 설정 화면
   getSettings: () => ipcRenderer.invoke('settings-get'),

@@ -64,10 +64,12 @@ class RiotStats {
     let todayCount = 0;
     let lossStreak = 0;
     let streakBroken = false;
+    let latest = null; // 가장 최근 판 (near-miss 감지용)
 
     for (const id of ids) { // ids는 최신순
       const m = await this.getMatch(id, puuid, apiKey);
       if (m.remake) continue;
+      if (!latest) latest = { id, ...m };
 
       if (m.startedAt >= dayStart) todayCount++;
       if (!streakBroken) {
@@ -78,7 +80,7 @@ class RiotStats {
       if (streakBroken && m.startedAt < dayStart) break;
     }
 
-    return { todayCount, lossStreak, fetchedAt: Date.now() };
+    return { todayCount, lossStreak, fetchedAt: Date.now(), latest };
   }
 }
 
@@ -97,6 +99,24 @@ RiotStats.prototype.getMatch = async function (id, puuid, apiKey) {
     this.matchCache.set(id, m);
   }
   return m;
+};
+
+// 타임라인 분석: 분당 팀 골드 차이로 "얼마나 앞서다 뒤집혔나"를 계산 (near-miss 감지 재료)
+RiotStats.prototype.getTimeline = async function (matchId, { riotId, apiKey }) {
+  const puuid = await this.resolvePuuid(riotId, apiKey);
+  const tl = await this.api(`/lol/match/v5/matches/${matchId}/timeline`, apiKey);
+  const me = tl.info.participants.find((p) => p.puuid === puuid);
+  if (!me) return null;
+  const myTeam = me.participantId <= 5 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10];
+  let maxLead = 0, maxLeadMin = 0;
+  for (const f of tl.info.frames || []) {
+    let diff = 0;
+    for (const [pid, pf] of Object.entries(f.participantFrames || {})) {
+      diff += (myTeam.includes(Number(pid)) ? 1 : -1) * (pf.totalGold || 0);
+    }
+    if (diff > maxLead) { maxLead = diff; maxLeadMin = Math.round(f.timestamp / 60000); }
+  }
+  return { maxLead, maxLeadMin };
 };
 
 // 최근 N일치 경기 전부 (주간 리포트용)

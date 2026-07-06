@@ -61,6 +61,7 @@
       <div class="tile" id="tile-max"><div class="num" id="t-max">-</div><div class="lbl">하루 최다</div></div>
     </div>
     <div class="insight" id="t-insight"></div>
+    <div class="sub" id="prev-line" style="margin: 10px 2px 0; display: none;"></div>
   </div>
 
   <button id="refresh">다시 분석</button>
@@ -96,6 +97,19 @@
     $('tile-loss').classList.toggle('warn', r.lossSessions >= 2 && r.nightLossSessions / r.lossSessions >= 0.5);
 
     $('t-insight').textContent = r.insight;
+
+    // 지난주 아카이브가 있으면 비교
+    if (res.prev && res.prev.total >= 0) {
+      const p = res.prev;
+      const sign = (n) => (n >= 0 ? '+' : '') + n;
+      const nightPct = r.total ? Math.round((r.nightCount / r.total) * 100) : 0;
+      const prevNightPct = p.total ? Math.round((p.nightCount / p.total) * 100) : 0;
+      $('prev-line').textContent =
+        `지난주 대비 — 판수 ${sign(r.total - p.total)} · 심야 비중 ${sign(nightPct - prevNightPct)}%p · 승률 ${sign(r.winrate - p.winrate)}%p`;
+      $('prev-line').style.display = 'block';
+    } else {
+      $('prev-line').style.display = 'none';
+    }
     $('body').style.display = 'block';
   }
 

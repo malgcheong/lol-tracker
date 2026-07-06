@@ -653,6 +653,14 @@
     pokeTimer = setTimeout(() => render(lastState), 4500);
   });
 
+  // 역전패(near-miss) 직후: '거의 이겼는데'가 제일 위험한 순간 (핸드오프 6-1)
+  window.tracker.onNearMiss(({ lead, minute }) => {
+    applyMode('angry-mode');
+    setLine(`방금 그 판, <b>${minute}분에 +${lead.toLocaleString()} 골드</b>까지 앞섰다가 뒤집혔어.<br>'거의 이겼는데'가 맴돌지? 그 생각이 도박장이 제일 좋아하는 미끼야. 다음 큐 전에 한 번만 쉬자.`);
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 15000);
+  });
+
   // 실패: 연속 기록 깨짐 → 즉시 퇴화
   window.tracker.onStreakReset(() => {
     lastState = { ...lastState, orbs: 0, streak: 0 };
