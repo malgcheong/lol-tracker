@@ -249,6 +249,7 @@ function createControlWindow() {
   controlWin = new BrowserWindow({
     width: 300, height: 720, x: 40, y: 40,
     title: '가짜 롤 클라이언트 조종판 (mock)',
+    icon: path.join(__dirname, 'assets', 'tray.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   controlWin.loadFile(path.join(__dirname, 'ui', 'control.html'));
@@ -261,6 +262,7 @@ function createGlassWindow(width, height, file) {
   const base = {
     width, height,
     frame: false, resizable: false,
+    icon: path.join(__dirname, 'assets', 'tray.png'),
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   };
   let win;
