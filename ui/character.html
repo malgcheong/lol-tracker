@@ -85,23 +85,15 @@
   #char.e1 .horn-branch, #char.e1 .tail-curl, #char.e1 .held { display: block; }
   #char.e1 .arm-l, #char.e1 .arm-r { display: none; } /* 여의주 안느라 팔 내림 (복싱 땐 글러브가 대신) */
 
-  /* 몽무기(e2): 구름 탄 이무기 */
+  /* 몽무기(e2, 최종): 구름 탄 이무기 — 웅덩이(포탈)에서 벗어남. 용은 아직 꿈. */
   #imugi { display: none; }
-  #char.e2 #chara { display: none; }
+  #char.e2 #chara, #char.e2 #portal { display: none; }
   #char.e2 #imugi { display: block; }
   .im-float { transform-box: fill-box; transform-origin: center bottom; animation: floaty 3s ease-in-out infinite; }
   .im-orb { transform-box: fill-box; transform-origin: center; animation: floaty 2.6s ease-in-out infinite; }
   .im-orb.o2 { animation-delay: 1s; }
 
-  /* 몽룡(e3): 성체 용 */
-  #dragon { display: none; }
-  #char.e3 #chara { display: none; }
-  #char.e3 #dragon { display: block; }
-  .d-float { transform-box: fill-box; transform-origin: center; animation: floaty 3.6s ease-in-out infinite; }
-  .d-aura { transform-box: fill-box; transform-origin: center; animation: dragGlow 4s ease-in-out infinite; }
-  @keyframes dragGlow { 0%,100%{opacity:.75; transform:scale(1)} 50%{opacity:1; transform:scale(1.06)} }
-
-  /* 수염 흔들림 (몽무기·몽룡 공용) */
+  /* 수염 흔들림 */
   .whisker-l, .im-whisker-l { transform-box: fill-box; transform-origin: right center; animation: wsway 3s ease-in-out infinite; }
   .whisker-r, .im-whisker-r { transform-box: fill-box; transform-origin: left center; animation: wsway 3s ease-in-out infinite reverse; }
   @keyframes wsway { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-4deg)} }
@@ -325,8 +317,8 @@
       <!-- ============ 몽무기: 수염 나는 이무기 (여의주 2개) ============ -->
       <g id="imugi">
         <!-- 떠다니는 여의주 2개 -->
-        <circle class="im-orb o1" cx="46" cy="72" r="8" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
-        <circle class="im-orb o2" cx="156" cy="104" r="7" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
+        <circle class="im-orb o1" cx="40" cy="80" r="8" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
+        <circle class="im-orb o2" cx="162" cy="110" r="7" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
 
         <g class="im-float">
           <!-- 구름 -->
@@ -335,101 +327,55 @@
             <circle cx="64" cy="184" r="15"/><circle cx="100" cy="179" r="19"/><circle cx="136" cy="184" r="15"/>
           </g>
 
-          <!-- S자 서린 몸통 -->
-          <path d="M100 176 C 62 172, 66 132, 102 132 C 134 132, 132 104, 106 98"
-                fill="none" stroke="#8266ad" stroke-width="26" stroke-linecap="round"/>
-          <path d="M100 176 C 62 172, 66 132, 102 132 C 134 132, 132 104, 106 98"
-                fill="none" stroke="url(#bodyGrad)" stroke-width="19" stroke-linecap="round"/>
-          <path d="M100 176 C 62 172, 66 132, 102 132 C 134 132, 132 104, 106 98"
-                fill="none" stroke="#e8c25a" stroke-width="6" stroke-linecap="round" stroke-dasharray="2 12" opacity=".65"/>
+          <!-- 짧은 S 몸통 (머리 아래로 한 번만 굽이침) -->
+          <path d="M100 118 C 74 126, 76 150, 102 152 C 122 154, 122 170, 102 174"
+                fill="none" stroke="#8266ad" stroke-width="25" stroke-linecap="round"/>
+          <path d="M100 118 C 74 126, 76 150, 102 152 C 122 154, 122 170, 102 174"
+                fill="none" stroke="url(#bodyGrad)" stroke-width="18" stroke-linecap="round"/>
+          <!-- 배: 연보라 배판 (몽뿔이 배랑 같은 톤) -->
+          <path d="M98 120 C 78 128, 80 148, 102 150 C 118 152, 118 166, 103 170"
+                fill="none" stroke="#f0eaf9" stroke-width="9" stroke-linecap="round"/>
 
-          <!-- 머리 -->
+          <!-- 머리 (큼직하게, 2등신) -->
           <g>
-            <!-- 뿔가지 귀 -->
-            <ellipse cx="82" cy="42" rx="10" ry="16" fill="#9d7fc7" stroke="#6b54a0" stroke-width="3" transform="rotate(-16 82 42)"/>
-            <ellipse cx="118" cy="42" rx="10" ry="16" fill="#9d7fc7" stroke="#6b54a0" stroke-width="3" transform="rotate(16 118 42)"/>
-            <ellipse cx="82" cy="44" rx="4" ry="8" fill="#f3e3bd" transform="rotate(-16 82 44)"/>
-            <ellipse cx="118" cy="44" rx="4" ry="8" fill="#f3e3bd" transform="rotate(16 118 44)"/>
-            <ellipse cx="72" cy="28" rx="4" ry="7" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2" transform="rotate(-38 72 28)"/>
-            <ellipse cx="128" cy="28" rx="4" ry="7" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2" transform="rotate(38 128 28)"/>
-
-            <!-- 흩날리는 수염 -->
-            <path class="im-whisker-l" d="M76 74 C 46 76, 30 64, 22 50" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round"/>
-            <path class="im-whisker-r" d="M124 74 C 154 76, 170 64, 178 50" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round"/>
+            <!-- 몽글 뿔 + 뿔가지 (몽뿔이와 동일한 스타일) -->
+            <ellipse cx="74" cy="26" rx="10" ry="14" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(-25 74 26)"/>
+            <ellipse cx="126" cy="26" rx="10" ry="14" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(25 126 26)"/>
+            <ellipse cx="63" cy="17" rx="5" ry="8" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2.5" transform="rotate(-48 63 17)"/>
+            <ellipse cx="137" cy="17" rx="5" ry="8" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2.5" transform="rotate(48 137 17)"/>
+            <!-- 풍성하게 자란 앞머리 (몽뿔이 두 가닥이 자람) -->
+            <g fill="#8266ad" stroke="#6b54a0" stroke-width="2.5" stroke-linejoin="round">
+              <path d="M78 38 C 70 26, 76 12, 90 14 C 88 24, 90 30, 95 35 C 88 33, 82 35, 78 38 Z"/>
+              <path d="M90 32 C 88 16, 98 4, 110 10 C 106 18, 107 26, 110 32 C 103 28, 96 29, 90 32 Z"/>
+              <path d="M107 34 C 110 20, 122 14, 128 22 C 124 30, 118 34, 110 37 C 109 36, 108 35, 107 34 Z"/>
+            </g>
 
             <!-- 얼굴 -->
-            <ellipse cx="100" cy="60" rx="34" ry="31" fill="url(#bodyGrad)" stroke="#6b54a0" stroke-width="3.5"/>
-            <ellipse cx="84" cy="42" rx="14" ry="8" fill="#ffffff" opacity=".35" transform="rotate(-20 84 42)"/>
-            <!-- 눈썹 (살짝 처진 순한 인상) -->
-            <path d="M78 48 q8 -4 15 -1 M107 47 q7 -3 15 1" fill="none" stroke="#6b54a0" stroke-width="3" stroke-linecap="round"/>
+            <ellipse cx="100" cy="72" rx="46" ry="42" fill="url(#bodyGrad)" stroke="#6b54a0" stroke-width="3.5"/>
+            <ellipse cx="80" cy="48" rx="18" ry="10" fill="#ffffff" opacity=".38" transform="rotate(-22 80 48)"/>
+
+            <!-- 짧은 수염 (볼 옆에 살짝) -->
+            <path class="im-whisker-l" d="M58 78 C 48 80, 42 78, 38 73" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round"/>
+            <path class="im-whisker-r" d="M142 78 C 152 80, 158 78, 162 73" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round"/>
+
             <!-- 눈 -->
-            <circle cx="86" cy="58" r="8.5" fill="#241b38"/><circle cx="114" cy="58" r="8.5" fill="#241b38"/>
-            <circle cx="83" cy="55" r="3" fill="#fff"/><circle cx="111" cy="55" r="3" fill="#fff"/>
+            <circle cx="82" cy="68" r="11.5" fill="#241b38"/><circle cx="118" cy="68" r="11.5" fill="#241b38"/>
+            <circle cx="78" cy="64" r="4" fill="#fff"/><circle cx="114" cy="64" r="4" fill="#fff"/>
+            <circle cx="86" cy="73" r="2" fill="#fff" opacity=".9"/><circle cx="122" cy="73" r="2" fill="#fff" opacity=".9"/>
             <!-- 볼 -->
-            <ellipse cx="72" cy="66" rx="7" ry="4" fill="#f2a9c4" opacity=".8"/>
-            <ellipse cx="128" cy="66" rx="7" ry="4" fill="#f2a9c4" opacity=".8"/>
+            <ellipse cx="62" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
+            <ellipse cx="138" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
             <!-- 입 + 송곳니 -->
-            <path d="M92 72 Q100 80 108 72" fill="none" stroke="#241b38" stroke-width="3" stroke-linecap="round"/>
-            <path d="M96 74 l2 6 2 -5 Z" fill="#fff"/>
+            <path d="M90 88 Q100 97 110 88" fill="none" stroke="#241b38" stroke-width="3.5" stroke-linecap="round"/>
+            <path d="M94 90 l2.5 7 2.5 -6 Z" fill="#fff"/>
           </g>
 
-          <!-- 턱 괴는 앞발 -->
-          <ellipse cx="76" cy="86" rx="9" ry="12" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(30 76 86)"/>
+          <!-- 손: 턱 밑에서 몸을 짚은 짜리 앞발 두 개 -->
+          <ellipse cx="80" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(24 80 122)"/>
+          <ellipse cx="120" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-24 120 122)"/>
         </g>
       </g>
 
-      <!-- ============ 최종 진화: 성체 용 (몽룡, 여의주 3개~) ============ -->
-      <g id="dragon">
-        <!-- 광배 -->
-        <circle class="d-aura" cx="100" cy="100" r="95" fill="url(#dragAura)"/>
-
-        <g class="d-float">
-          <!-- 서린 몸통 (뒤 코일) -->
-          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
-                fill="none" stroke="#2c1a52" stroke-width="30" stroke-linecap="round"/>
-          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
-                fill="none" stroke="url(#dragBody)" stroke-width="23" stroke-linecap="round"/>
-          <!-- 배 비늘 (금빛 점선) -->
-          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
-                fill="none" stroke="#e8c25a" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 11" opacity=".8"/>
-          <!-- 등 갈기 (붉은 지느러미) -->
-          <path d="M100 52 q-10 -12 -22 -8 q10 2 12 12 q-14 -8 -26 2 q12 0 16 12 q-16 -4 -24 10"
-                fill="url(#maneGrad)" stroke="#8f2233" stroke-width="2"/>
-
-          <!-- 앞발 + 여의주 -->
-          <g class="d-claw">
-            <path d="M120 168 q16 -4 24 6 q-4 6 -12 6 q4 6 -2 10 q-6 -2 -8 -8 q-8 2 -12 -4 q4 -10 10 -16 Z"
-                  fill="#3a2360" stroke="#1f1240" stroke-width="2"/>
-            <circle cx="128" cy="176" r="16" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="2"/>
-            <circle cx="122" cy="170" r="4.5" fill="#fffef0" opacity=".9"/>
-          </g>
-
-          <!-- 머리 -->
-          <g class="d-head">
-            <!-- 금빛 사슴뿔 (여러 갈래) -->
-            <path d="M84 40 C 78 20, 66 14, 60 4 M72 24 C 62 20, 56 12, 58 4" fill="none" stroke="#f2c94c" stroke-width="5" stroke-linecap="round"/>
-            <path d="M116 40 C 122 20, 134 14, 140 4 M128 24 C 138 20, 144 12, 142 4" fill="none" stroke="#f2c94c" stroke-width="5" stroke-linecap="round"/>
-            <!-- 흩날리는 수염 -->
-            <path class="whisker-l" d="M74 66 C 38 66, 20 50, 8 30" fill="none" stroke="#f2c94c" stroke-width="3.5" stroke-linecap="round"/>
-            <path class="whisker-r" d="M126 66 C 162 66, 180 50, 192 30" fill="none" stroke="#f2c94c" stroke-width="3.5" stroke-linecap="round"/>
-            <!-- 얼굴 -->
-            <path d="M100 30 C 74 30, 66 54, 72 70 C 78 84, 122 84, 128 70 C 134 54, 126 30, 100 30 Z"
-                  fill="url(#dragBody)" stroke="#1f1240" stroke-width="3"/>
-            <!-- 주둥이 -->
-            <ellipse cx="100" cy="72" rx="22" ry="13" fill="#5a3d90"/>
-            <!-- 콧구멍 -->
-            <circle cx="92" cy="70" r="2.2" fill="#1f1240"/><circle cx="108" cy="70" r="2.2" fill="#1f1240"/>
-            <!-- 날카로운 눈 (금빛 광채) -->
-            <path d="M78 52 l16 5 -15 4 Z" fill="#ffe98a" stroke="#b8860b" stroke-width="1.5"/>
-            <path d="M122 52 l-16 5 15 4 Z" fill="#ffe98a" stroke="#b8860b" stroke-width="1.5"/>
-            <circle cx="84" cy="55" r="2.3" fill="#3a1010"/><circle cx="116" cy="55" r="2.3" fill="#3a1010"/>
-            <!-- 눈썹 이마 뿔 융기 -->
-            <path d="M74 48 q10 -6 22 -2 M126 48 q-10 -6 -22 -2" fill="none" stroke="#2c1a52" stroke-width="3" stroke-linecap="round"/>
-            <!-- 송곳니 -->
-            <path d="M90 80 l3 8 3 -7 Z" fill="#fff"/><path d="M110 80 l-3 8 -3 -7 Z" fill="#fff"/>
-          </g>
-        </g>
-      </g>
     </svg>
     <div class="qmark">?</div><div class="qmark q2">?</div>
     <div class="zzz">z z</div>
@@ -457,9 +403,9 @@
   let tierClass = null; // 여의주 성장 단계 (e1/e2/e3)
 
   const orbChip = document.getElementById('orb-chip');
-  // 컨셉시트 v4: 0개=몽뿔이 / 1개=몽실이 / 2개=몽무기 / 3개~=몽룡
-  function tierOf(orbs) { return orbs >= 3 ? 'e3' : orbs >= 2 ? 'e2' : orbs >= 1 ? 'e1' : null; }
-  function nameOf(orbs) { return orbs >= 3 ? '몽룡' : orbs >= 2 ? '몽무기' : orbs >= 1 ? '몽실이' : '몽뿔이'; }
+  // 진화: 0개=몽뿔이 / 1개=몽실이 / 2개~=몽무기(최종). 용은 아직 꿈.
+  function tierOf(orbs) { return orbs >= 2 ? 'e2' : orbs >= 1 ? 'e1' : null; }
+  function nameOf(orbs) { return orbs >= 2 ? '몽무기' : orbs >= 1 ? '몽실이' : '몽뿔이'; }
 
   // ---- 대사 (이무기 페르소나: '한 판만 더' 하다 승천 실패한 영물) ----
   function violationLine(v, phase) {
@@ -675,7 +621,7 @@
     orbChip.textContent = `${nameOf(n)} · 여의주 ${n}`;
     applyMode('happy-mode');
     setLine(evolved
-      ? `여의주 ${n}개째! <b>${nameOf(n)}</b>(으)로 진화했어. ${n >= 3 ? '드디어 용이 됐다...!' : '고마워, 계속 부탁해.'}`
+      ? `여의주 ${n}개째! <b>${nameOf(n)}</b>(으)로 진화했어. ${n >= 2 ? '수염 났지? 어엿한 이무기야. 용은... 네가 계속 지켜주면 언젠가.' : '고마워, 계속 부탁해.'}`
       : `어제 약속 지켰네. <b>여의주 +1</b> — 이제 ${n}개야.`);
     for (let i = 0; i < 6; i++) {
       setTimeout(() => spawnSpark(60 + Math.random() * 80, 40 + Math.random() * 80), i * 180);
