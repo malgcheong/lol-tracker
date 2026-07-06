@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS = {
   dailyLimit: 5,     // 하루 판수 한도 (이만큼 하면 개입, 0 = 끔)
   lossStreakLimit: 2,// 연패 한도 (이만큼 연패면 개입, 0 = 끔)
   dayResetHour: 5,   // '오늘'이 리셋되는 시각. 새벽 5시 전 게임은 전날로 (심야 롤은 오늘에 누적)
+  hardMode: false,   // 하드 모드: 하루 한도 초과 시 롤 클라이언트 강제 종료 + 재실행 감시
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -258,6 +259,23 @@ function createTray() {
   tray.on('click', openSettingsWindow);
 }
 
+// ---- 하드 모드: 한도 초과 시 롤 클라이언트 강제 종료 + 워치독 ----
+// 안전 수칙: 인게임·챔피언 선택 중엔 절대 안 닫음 (탈주/닷지 패널티). 로비 계열 phase에서만.
+// 로비 클라를 닫는 건 그냥 창 닫기라 패널티·밴 위험 없음.
+const KILL_SAFE_PHASES = ['None', 'Lobby', 'Matchmaking', 'ReadyCheck', 'EndOfGame', 'WaitingForStats', 'PreEndOfGame'];
+function enforceHardMode() {
+  if (!settings.hardMode || config.mode === 'mock') return;
+  const v = computeVerdict();
+  if (!v.violations.some((x) => x.type === 'daily')) return; // 하드 모드는 판수 한도만 (연패는 마찰로)
+  if (!KILL_SAFE_PHASES.includes(lastPhase)) return; // 게임 중이면 끝날 때까지 대기
+  exec('taskkill /F /IM LeagueClient.exe /T', (err) => {
+    if (!err) {
+      console.log('[hard] 한도 초과 → 롤 클라이언트 종료');
+      broadcast('status', '하드 모드: 오늘 한도 소진 → 클라이언트 닫음');
+    }
+  });
+}
+
 // ---- 시작 ----
 app.whenReady().then(() => {
   createCharacterWindow();
@@ -277,6 +295,7 @@ app.whenReady().then(() => {
     console.log(`[gameflow-phase] ${phase}`); // 실제 클라에서 phase 이름 확인용
     // 로비/매칭 구간을 벗어나면 "그래도 할래" 통과 상태 초기화 (다음 세션에 다시 막게)
     if (!['Lobby', 'Matchmaking'].includes(phase)) forcedThroughMain = false;
+    enforceHardMode(); // 게임이 끝나 안전한 phase로 돌아오는 순간 바로 집행
     pushState();
     // 게임 끝났으면 잠시 후 전적 갱신 (기록이 올라오는 데 시간이 걸림 - CCTV 녹화본)
     if (phase === 'EndOfGame' && config.mode === 'real') {
@@ -302,6 +321,7 @@ app.whenReady().then(() => {
   // real 모드에서만 주기 갱신. mock 모드에선 조종판의 가짜 통계를 덮어쓰지 않도록 안 돌림.
   if (config.mode === 'real') {
     setInterval(() => refreshStats('주기'), 5 * 60 * 1000);
+    setInterval(enforceHardMode, 20 * 1000); // 워치독: 클라 다시 켜도 20초 안에 또 닫힘
   }
 
   if (firstRun || !settings.apiKey) openSettingsWindow();
