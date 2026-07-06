@@ -5,12 +5,20 @@
 <title>주간 리포트</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background: #1e2328; color: #f0e6d2; margin: 0; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 0 20px 20px; margin: 0;
+         background: rgba(16, 13, 27, .62); color: #f0e6d2; height: 100vh; overflow-y: auto; }
+  /* 커스텀 타이틀바: 잡고 끌기 + 닫기 */
+  #titlebar { -webkit-app-region: drag; display: flex; justify-content: space-between; align-items: center;
+              margin: 0 -20px 12px; padding: 12px 10px 8px 20px; }
+  #titlebar .t { font-size: 12px; color: #c8aa6e; letter-spacing: .5px; }
+  #win-close { -webkit-app-region: no-drag; width: 30px; height: 26px; border: none; border-radius: 6px;
+               background: transparent; color: #a09b8c; font-size: 14px; cursor: pointer; }
+  #win-close:hover { background: rgba(200, 60, 60, .75); color: #fff; }
   h1 { font-size: 16px; margin: 0 0 3px; color: #c8aa6e; }
   .sub { font-size: 11px; color: #a09b8c; margin-bottom: 16px; }
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
   .tile {
-    background: #14181c; border: 1px solid #3c3c41; border-radius: 8px;
+    background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .09); border-radius: 10px;
     padding: 12px; text-align: center;
   }
   .tile .num { font-size: 22px; font-weight: bold; color: #f0e6d2; }
@@ -18,21 +26,25 @@
   .tile .lbl { font-size: 11px; color: #a09b8c; margin-top: 3px; }
   .tile.warn .num { color: #e88; }
   .insight {
-    background: #26221a; border: 1px solid #785a28; border-radius: 8px;
+    background: rgba(200, 170, 110, .12); border: 1px solid rgba(200, 170, 110, .35); border-radius: 10px;
     padding: 13px 14px; font-size: 13.5px; line-height: 1.6; color: #e8d9ae;
   }
   .insight::before { content: '🐉 '; }
   #loading { text-align: center; color: #a09b8c; padding: 60px 0; font-size: 13px; }
-  #err { display: none; background: #3a1a1a; color: #e88; border-radius: 8px; padding: 12px; font-size: 12.5px; line-height: 1.5; }
-  button {
+  #err { display: none; background: rgba(160, 40, 40, .3); color: #e88; border-radius: 8px; padding: 12px; font-size: 12.5px; line-height: 1.5; }
+  #refresh {
     width: 100%; margin-top: 14px; padding: 10px; font-size: 13px; cursor: pointer;
-    background: #3c3c41; color: #f0e6d2; border: 1px solid #785a28; border-radius: 6px;
+    background: rgba(255, 255, 255, .07); color: #f0e6d2; border: 1px solid rgba(200, 170, 110, .4); border-radius: 8px;
   }
-  button:hover { background: #785a28; }
+  #refresh:hover { background: rgba(200, 170, 110, .25); }
   #sample-tag { display: none; font-size: 10px; color: #c8aa6e; border: 1px solid #785a28; border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
 </style>
 </head>
 <body>
+  <div id="titlebar">
+    <span class="t">🐉 LoL TRACKER</span>
+    <button id="win-close">✕</button>
+  </div>
   <h1>주간 리포트 <span id="sample-tag">mock 샘플</span></h1>
   <div class="sub">최근 7일 · 패턴은 스스로 볼 때 제일 잘 보인다</div>
 
@@ -88,6 +100,7 @@
   }
 
   $('refresh').addEventListener('click', load);
+  $('win-close').addEventListener('click', () => window.close());
   load();
 </script>
 </body>

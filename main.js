@@ -255,26 +255,34 @@ function createControlWindow() {
   controlWin.on('closed', () => { controlWin = null; });
 }
 
+// 유리(아크릴) 질감의 자체 창 — OS 기본 창틀 대신 커스텀 타이틀바 (OP.GG Desktop 느낌)
+// Windows 11이면 아크릴 블러, 안 되면 반투명 창으로 폴백
+function createGlassWindow(width, height, file) {
+  const base = {
+    width, height,
+    frame: false, resizable: false,
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  };
+  let win;
+  try {
+    win = new BrowserWindow({ ...base, backgroundMaterial: 'acrylic' });
+  } catch {
+    win = new BrowserWindow({ ...base, transparent: true });
+  }
+  win.loadFile(path.join(__dirname, 'ui', file));
+  return win;
+}
+
 let reportWin = null;
 function openReportWindow() {
   if (reportWin && !reportWin.isDestroyed()) { reportWin.focus(); return; }
-  reportWin = new BrowserWindow({
-    width: 420, height: 620,
-    title: '주간 리포트',
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
-  });
-  reportWin.loadFile(path.join(__dirname, 'ui', 'report.html'));
+  reportWin = createGlassWindow(420, 640, 'report.html');
   reportWin.on('closed', () => { reportWin = null; });
 }
 
 function openSettingsWindow() {
   if (settingsWin && !settingsWin.isDestroyed()) { settingsWin.focus(); return; }
-  settingsWin = new BrowserWindow({
-    width: 460, height: 640,
-    title: '롤 트래커 설정',
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
-  });
-  settingsWin.loadFile(path.join(__dirname, 'ui', 'settings.html'));
+  settingsWin = createGlassWindow(460, 720, 'settings.html');
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
