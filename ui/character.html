@@ -45,13 +45,13 @@
           transition: transform .3s, opacity .3s; }
   #char.small-mode { transform: scale(.6); opacity: .8; }
 
-  /* 본체만 떠다니고 포탈은 바닥에 남는다 */
-  #chara { transform-box: fill-box; transform-origin: center; animation: floaty 3s ease-in-out infinite; }
-  #char.bounce-mode #chara { animation: floaty 2s ease-in-out infinite; }
-  #char.angry-mode #chara { animation: shake .35s infinite; }
-  #char.happy-mode #chara { animation: wiggle .55s; }
-  #char.queue-mode #chara { animation: spinq 1.7s linear infinite; } /* 큐 "돌리기" */
-  #char.boxing-mode #chara { animation: bob .5s infinite; }
+  /* 본체만 떠다니고 포탈은 바닥에 남는다 (몽무기 #imugi도 동일하게 반응) */
+  #chara, #imugi { transform-box: fill-box; transform-origin: center; animation: floaty 3s ease-in-out infinite; }
+  #char.bounce-mode #chara, #char.bounce-mode #imugi { animation: floaty 2s ease-in-out infinite; }
+  #char.angry-mode #chara, #char.angry-mode #imugi { animation: shake .35s infinite; }
+  #char.happy-mode #chara, #char.happy-mode #imugi { animation: wiggle .55s; }
+  #char.queue-mode #chara, #char.queue-mode #imugi { animation: spinq 1.7s linear infinite; } /* 큐 "돌리기" */
+  #char.boxing-mode #chara, #char.boxing-mode #imugi { animation: bob .5s infinite; }
   @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
   @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
@@ -89,7 +89,7 @@
   #imugi { display: none; }
   #char.e2 #chara, #char.e2 #portal { display: none; }
   #char.e2 #imugi { display: block; }
-  .im-float { transform-box: fill-box; transform-origin: center bottom; animation: floaty 3s ease-in-out infinite; }
+  .im-float { transform-box: fill-box; transform-origin: center bottom; } /* 부유는 #imugi가 담당 */
   .im-orb { transform-box: fill-box; transform-origin: center; animation: floaty 2.6s ease-in-out infinite; }
   .im-orb.o2 { animation-delay: 1s; }
 
@@ -128,8 +128,14 @@
   #char.sleep-mode .zzz { display: block; animation: floaty 2s infinite; }
 
   .glove-l, .glove-r { display: none; transform-box: fill-box; transform-origin: center; }
-  #char.boxing-mode .glove-l { display: block; animation: jabL .5s infinite; }
-  #char.boxing-mode .glove-r { display: block; animation: jabR .5s infinite; }
+  #char.boxing-mode .glove-l, #char.boxing-mode .glove-r { display: block; }
+  .glove-inner { transform-box: fill-box; transform-origin: center; }
+  #char.boxing-mode .glove-l .glove-inner { animation: jabL .5s infinite; }
+  #char.boxing-mode .glove-r .glove-inner { animation: jabR .5s infinite; }
+  /* 몽무기는 몸이 좁아서 글러브를 몸에 붙임 (바깥 그룹이 위치, 안쪽이 잽) */
+  #char.e2 .glove-l { transform: translate(26px, -8px); }
+  #char.e2 .glove-r { transform: translate(-26px, -8px); }
+  #char.boxing-mode .im-paw { display: none; } /* 복싱 땐 글러브가 손 */
   @keyframes jabL { 0%,100%{transform:translate(0,0)} 25%{transform:translate(20px,-14px)} }
   @keyframes jabR { 0%,100%{transform:translate(0,0)} 75%{transform:translate(-20px,-14px)} }
 
@@ -283,24 +289,6 @@
           </g>
         </g>
 
-        <!-- 알림 배지 -->
-        <g id="badge">
-          <circle cx="163" cy="34" r="15" fill="#f5b12e" stroke="#fffdfd" stroke-width="3"/>
-          <text x="163" y="42" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">!</text>
-        </g>
-
-        <!-- 권투 글러브 (복싱 모드에서만) -->
-        <g class="glove-l">
-          <rect x="20" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(-30 28 128)"/>
-          <ellipse cx="31" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
-          <ellipse cx="42" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
-        </g>
-        <g class="glove-r">
-          <rect x="163" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(30 172 128)"/>
-          <ellipse cx="169" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
-          <ellipse cx="158" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
-        </g>
-
         <!-- 몽실이(e1)가 두 발로 안은 여의주 (배 아래쪽, 입 아래) -->
         <g class="held">
           <ellipse cx="80" cy="162" rx="11" ry="13" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(26 80 162)"/>
@@ -332,9 +320,11 @@
                 fill="none" stroke="#8266ad" stroke-width="25" stroke-linecap="round"/>
           <path d="M100 118 C 74 126, 76 150, 102 152 C 122 154, 122 170, 102 174"
                 fill="none" stroke="url(#bodyGrad)" stroke-width="18" stroke-linecap="round"/>
-          <!-- 배: 연보라 배판 (몽뿔이 배랑 같은 톤) -->
+          <!-- 배: 누런 크림 배판 (전체) + 가로 마디선 -->
           <path d="M98 120 C 78 128, 80 148, 102 150 C 118 152, 118 166, 103 170"
-                fill="none" stroke="#f0eaf9" stroke-width="9" stroke-linecap="round"/>
+                fill="none" stroke="#f0e2c0" stroke-width="9" stroke-linecap="round"/>
+          <path d="M98 120 C 78 128, 80 148, 102 150 C 118 152, 118 166, 103 170"
+                fill="none" stroke="#d9c49a" stroke-width="9" stroke-dasharray="1.8 7.5" opacity=".85"/>
 
           <!-- 머리 (큼직하게, 2등신) -->
           <g>
@@ -370,12 +360,27 @@
             <path d="M94 90 l2.5 7 2.5 -6 Z" fill="#fff"/>
           </g>
 
-          <!-- 손: 턱 밑에서 몸을 짚은 짜리 앞발 두 개 -->
-          <ellipse cx="80" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(24 80 122)"/>
-          <ellipse cx="120" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-24 120 122)"/>
+          <!-- 손: 턱 밑에서 몸을 짚은 짜리 앞발 두 개 (복싱 땐 글러브로 교체) -->
+          <ellipse class="im-paw" cx="80" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(24 80 122)"/>
+          <ellipse class="im-paw" cx="120" cy="122" rx="9" ry="11" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-24 120 122)"/>
         </g>
       </g>
 
+      <!-- 알림 배지 + 권투 글러브: 어느 진화 단계에서도 보이도록 최상위 -->
+      <g id="badge">
+        <circle cx="163" cy="34" r="15" fill="#f5b12e" stroke="#fffdfd" stroke-width="3"/>
+        <text x="163" y="42" font-size="21" font-weight="bold" fill="#fff" text-anchor="middle">!</text>
+      </g>
+      <g class="glove-l"><g class="glove-inner">
+        <rect x="20" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(-30 28 128)"/>
+        <ellipse cx="31" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
+        <ellipse cx="42" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
+      </g></g>
+      <g class="glove-r"><g class="glove-inner">
+        <rect x="163" y="124" width="17" height="9" rx="4" fill="#f0eaf9" stroke="#b23a4b" stroke-width="2.5" transform="rotate(30 172 128)"/>
+        <ellipse cx="169" cy="116" rx="15" ry="13" fill="#e2606c" stroke="#b23a4b" stroke-width="3"/>
+        <ellipse cx="158" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
+      </g></g>
     </svg>
     <div class="qmark">?</div><div class="qmark q2">?</div>
     <div class="zzz">z z</div>
