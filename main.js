@@ -86,12 +86,23 @@ function isNightNow() {
     ? h >= settings.nightStartHour || h < settings.dayResetHour
     : h >= settings.nightStartHour && h < settings.dayResetHour;
 }
+// 오늘의 할 일 (게임을 보상으로: 다 끝내기 전엔 위반 취급 — 프리맥 원리)
+function todayTasks() {
+  const day = dayKey();
+  if (!orbState.tasks || orbState.tasks.day !== day) orbState.tasks = { day, items: [] };
+  return orbState.tasks;
+}
+
 function computeVerdict() {
-  if (!stats) return { hasData: false, violations: [], stats: null, error: statsError, night: false };
   const night = isNightNow();
+  const violations = [];
+  // 할 일 게이트: 통계(Riot API) 없이도 작동
+  const t = todayTasks();
+  const remaining = t.items.filter((i) => !i.done).length;
+  if (remaining > 0) violations.push({ type: 'tasks', n: remaining, total: t.items.length });
+  if (!stats) return { hasData: false, violations, stats: null, error: statsError, night };
   const dLimit = settings.dailyLimit > 0 ? Math.max(1, settings.dailyLimit - (night ? 1 : 0)) : 0;
   const lLimit = settings.lossStreakLimit > 0 ? Math.max(1, settings.lossStreakLimit - (night ? 1 : 0)) : 0;
-  const violations = [];
   if (lLimit > 0 && stats.lossStreak >= lLimit) {
     violations.push({ type: 'lossStreak', n: stats.lossStreak, limit: lLimit, night: night && lLimit < settings.lossStreakLimit });
   }
@@ -318,6 +329,13 @@ function createGlassWindow(width, height, file) {
   return win;
 }
 
+let tasksWin = null;
+function openTasksWindow() {
+  if (tasksWin && !tasksWin.isDestroyed()) { tasksWin.focus(); return; }
+  tasksWin = createGlassWindow(360, 540, 'tasks.html');
+  tasksWin.on('closed', () => { tasksWin = null; });
+}
+
 let reportWin = null;
 function openReportWindow() {
   if (reportWin && !reportWin.isDestroyed()) { reportWin.focus(); return; }
@@ -335,6 +353,7 @@ function createTray() {
   tray = new Tray(path.join(__dirname, 'assets', 'tray.png'));
   tray.setToolTip('롤 트래커');
   tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '오늘 할 일', click: openTasksWindow },
     { label: '설정', click: openSettingsWindow },
     { label: '주간 리포트', click: openReportWindow },
     { label: '통계 새로고침', click: () => refreshStats('수동') },
@@ -447,6 +466,22 @@ ipcMain.on('mock-day-keep', () => { // 하루 성공 연출
 ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
   orbState.streak = 0;
   broadcast('streak-reset', 0);
+});
+
+// 오늘의 할 일
+ipcMain.handle('tasks-get', () => todayTasks());
+ipcMain.handle('tasks-set', (_e, items) => {
+  const t = todayTasks();
+  const beforeRemaining = t.items.filter((i) => !i.done).length;
+  t.items = (items || []).map((i) => ({ text: String(i.text).slice(0, 80), done: !!i.done }));
+  const afterRemaining = t.items.filter((i) => !i.done).length;
+  saveOrbState();
+  pushState(); // 블로커/캐릭터 즉시 갱신
+  // 마지막 할 일을 끝낸 순간: 보상 해금 축하
+  if (beforeRemaining > 0 && afterRemaining === 0 && t.items.length > 0) {
+    broadcast('tasks-done', t.items.length);
+  }
+  return t;
 });
 
 ipcMain.handle('settings-get', () => settings);

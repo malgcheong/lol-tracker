@@ -418,6 +418,10 @@
 
   // ---- 대사 (이무기 페르소나: '한 판만 더' 하다 승천 실패한 영물) ----
   function violationLine(v, phase) {
+    if (v.type === 'tasks') {
+      if (phase === 'Lobby') return `아직 할 일 <b>${v.n}개</b> 남았잖아. 다 끝내고 오면 제일 신나게 반겨줄게.`;
+      return `할 일 <b>${v.n}개</b> 두고 큐부터 눌러? 순서가 바뀌었어 — 게임은 다 끝낸 다음의 보상이야.`;
+    }
     if (v.type === 'lossStreak') {
       if (phase === 'Lobby') return `너 지금 <b>${v.n}연패</b> 중인 거 알지? 나 여기 있을게.`;
       return `<b>${v.n}연패</b> 중에 큐를 눌러? 본전 생각나서 그러는 거잖아. 나도 '한 판만 더' 하다가 용 못 됐어.`;
@@ -659,6 +663,17 @@
     setLine(`방금 그 판, <b>${minute}분에 +${lead.toLocaleString()} 골드</b>까지 앞섰다가 뒤집혔어.<br>'거의 이겼는데'가 맴돌지? 그 생각이 도박장이 제일 좋아하는 미끼야. 다음 큐 전에 한 번만 쉬자.`);
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 15000);
+  });
+
+  // 할 일 전부 완료: 보상 해금 축하
+  window.tracker.onTasksDone((total) => {
+    applyMode('happy-mode');
+    setLine(`오늘 할 일 <b>${total}개</b> 전부 끝!! 이제 진짜 보상 시간이야. 재밌게 해!`);
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => spawnSpark(60 + Math.random() * 80, 40 + Math.random() * 80), i * 160);
+    }
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 7000);
   });
 
   // AI 판 피드백 (DeepSeek 키 있을 때만, 게임당 1콜)

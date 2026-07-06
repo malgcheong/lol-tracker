@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>오늘 할 일</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 0 18px 18px; margin: 0;
+         background: rgba(16, 13, 27, .62); color: #f0e6d2; height: 100vh; overflow-y: auto; }
+  #titlebar { -webkit-app-region: drag; display: flex; justify-content: space-between; align-items: center;
+              margin: 0 -18px 10px; padding: 12px 10px 8px 18px; }
+  #titlebar .t { font-size: 12px; color: #c8aa6e; letter-spacing: .5px; }
+  #win-close { -webkit-app-region: no-drag; width: 30px; height: 26px; border: none; border-radius: 6px;
+               background: transparent; color: #a09b8c; font-size: 14px; cursor: pointer; }
+  #win-close:hover { background: rgba(200, 60, 60, .75); color: #fff; }
+  h1 { font-size: 16px; margin: 0 0 3px; color: #c8aa6e; }
+  .sub { font-size: 11px; color: #a09b8c; margin-bottom: 14px; line-height: 1.5; }
+
+  #add-row { display: flex; gap: 8px; margin-bottom: 14px; }
+  #new-task {
+    flex: 1; padding: 9px 10px; font-size: 13.5px;
+    background: rgba(0, 0, 0, .35); color: #f0e6d2; border: 1px solid rgba(200, 170, 110, .4); border-radius: 8px;
+  }
+  #new-task:focus { outline: none; border-color: #c8aa6e; }
+  #add {
+    padding: 9px 14px; font-size: 13px; cursor: pointer; font-weight: bold;
+    background: rgba(120, 90, 40, .65); color: #f0e6d2; border: 1px solid rgba(200, 170, 110, .4); border-radius: 8px;
+  }
+  #add:hover { background: #c8aa6e; color: #1e2328; }
+
+  .task {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 8px;
+    background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .09); border-radius: 10px;
+  }
+  .task input[type="checkbox"] { width: 17px; height: 17px; accent-color: #c8aa6e; cursor: pointer; flex-shrink: 0; }
+  .task .txt { flex: 1; font-size: 13.5px; line-height: 1.4; word-break: break-all; }
+  .task.done { opacity: .55; }
+  .task.done .txt { text-decoration: line-through; }
+  .task .del { border: none; background: transparent; color: #a09b8c; font-size: 13px; cursor: pointer; padding: 2px 6px; border-radius: 5px; }
+  .task .del:hover { background: rgba(200, 60, 60, .6); color: #fff; }
+
+  #status-line {
+    margin-top: 12px; padding: 11px 13px; border-radius: 10px; font-size: 13px; line-height: 1.5;
+  }
+  #status-line.locked { background: rgba(160, 60, 40, .18); border: 1px solid rgba(220, 120, 80, .4); color: #f0c8a8; }
+  #status-line.free { background: rgba(90, 160, 80, .15); border: 1px solid rgba(140, 200, 120, .4); color: #cde8b8; }
+  #empty { text-align: center; color: #a09b8c; font-size: 12.5px; padding: 24px 0; }
+</style>
+</head>
+<body>
+  <div id="titlebar">
+    <span class="t">🐉 LoL TRACKER</span>
+    <button id="win-close">✕</button>
+  </div>
+  <h1>오늘 할 일</h1>
+  <div class="sub">할 일을 다 끝내야 몽뿔이가 플레이 버튼을 열어줍니다.<br>게임은 보상 — 순서만 바꾸면 죄책감이 성취감이 됩니다.</div>
+
+  <div id="add-row">
+    <input id="new-task" placeholder="예: 운동 30분, 설거지, 이력서 한 줄...">
+    <button id="add">추가</button>
+  </div>
+
+  <div id="list"></div>
+  <div id="empty" style="display:none">오늘 등록한 할 일이 없어요.<br>등록 안 한 날은 게이트도 없어요 — 자유!</div>
+  <div id="status-line" style="display:none"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let items = [];
+
+  function renderList() {
+    const list = $('list');
+    list.innerHTML = '';
+    items.forEach((it, idx) => {
+      const row = document.createElement('div');
+      row.className = 'task' + (it.done ? ' done' : '');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = it.done;
+      cb.addEventListener('change', () => { items[idx].done = cb.checked; save(); });
+      const txt = document.createElement('div');
+      txt.className = 'txt'; txt.textContent = it.text;
+      const del = document.createElement('button');
+      del.className = 'del'; del.textContent = '✕';
+      del.addEventListener('click', () => { items.splice(idx, 1); save(); });
+      row.append(cb, txt, del);
+      list.appendChild(row);
+    });
+
+    $('empty').style.display = items.length ? 'none' : 'block';
+    const remaining = items.filter((i) => !i.done).length;
+    const sl = $('status-line');
+    if (!items.length) { sl.style.display = 'none'; return; }
+    sl.style.display = 'block';
+    if (remaining > 0) {
+      sl.className = 'locked';
+      sl.textContent = `🔒 ${remaining}개 남음 — 플레이 버튼 잠김`;
+    } else {
+      sl.className = 'free';
+      sl.textContent = '✅ 전부 완료! 보상 시간 해금 — 재밌게 하세요';
+    }
+  }
+
+  async function save() {
+    const t = await window.tracker.setTasks(items);
+    items = t.items;
+    renderList();
+  }
+
+  $('add').addEventListener('click', () => {
+    const v = $('new-task').value.trim();
+    if (!v) return;
+    items.push({ text: v, done: false });
+    $('new-task').value = '';
+    save();
+  });
+  $('new-task').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('add').click(); });
+  $('win-close').addEventListener('click', () => window.close());
+
+  window.tracker.getTasks().then((t) => { items = t.items; renderList(); });
+</script>
+</body>
+</html>
