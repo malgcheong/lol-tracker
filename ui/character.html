@@ -77,6 +77,35 @@
   .spark.s2 { animation-delay: 1.2s; }
   @keyframes twinkle { 0%,100%{opacity:.25; transform:scale(.8)} 50%{opacity:1; transform:scale(1.15)} }
 
+  /* ---- 여의주 성장 단계 (t1: 3개~, t2: 7개~, t3: 15개~) ---- */
+  .horns { transform-box: fill-box; transform-origin: center bottom; transition: transform .5s; }
+  #char.t1 .horns { transform: scaleY(1.18); }
+  #char.t2 .horns { transform: scaleY(1.32); }
+  #char.t3 .horns { transform: scaleY(1.45); }
+  .horn-branch { display: none; }
+  #char.t2 .horn-branch, #char.t3 .horn-branch { display: block; } /* 뿔에 가지 돋음 */
+  #char.t3 .horns ellipse { fill: #f2c94c; stroke: #a8781c; }      /* 금빛 뿔 */
+  .pearl { display: none; transform-box: fill-box; transform-origin: center; }
+  #char.t1 .p1 { display: block; animation: floaty 2.6s ease-in-out infinite; }
+  #char.t2 .p1, #char.t2 .p2 { display: block; animation: floaty 2.6s ease-in-out infinite; }
+  #char.t2 .p2 { animation-delay: .9s; }
+  #char.t3 .p1, #char.t3 .p2, #char.t3 .p3 { display: block; animation: floaty 2.6s ease-in-out infinite; }
+  #char.t3 .p2 { animation-delay: .9s; }
+  #char.t3 .p3 { animation-delay: 1.7s; }
+  .aura { opacity: 0; transition: opacity .8s; }
+  #char.t3 .aura { opacity: 1; animation: twinkle 3.5s ease-in-out infinite; } /* 승천 직전 황금 오라 */
+
+  /* ---- 최종 진화: 용 (t4, 여의주 30개~) ---- */
+  #dragon { display: none; }
+  #char.t4 #chara { display: none; }
+  #char.t4 #dragon { display: block; }
+  .d-float { transform-box: fill-box; transform-origin: center; animation: floaty 3.6s ease-in-out infinite; }
+  .d-aura { transform-box: fill-box; transform-origin: center; animation: dragGlow 4s ease-in-out infinite; }
+  @keyframes dragGlow { 0%,100%{opacity:.75; transform:scale(1)} 50%{opacity:1; transform:scale(1.06)} }
+  .whisker-l { transform-box: fill-box; transform-origin: right center; animation: wsway 3s ease-in-out infinite; }
+  .whisker-r { transform-box: fill-box; transform-origin: left center; animation: wsway 3s ease-in-out infinite reverse; }
+  @keyframes wsway { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-4deg)} }
+
   /* ---- 표정 전환 (기본: 방긋) ---- */
   .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
   /* 깜빡임 */
@@ -146,6 +175,31 @@
           <stop offset="55%" stop-color="#a98fd6"/>
           <stop offset="100%" stop-color="#8f72c0"/>
         </radialGradient>
+        <radialGradient id="pearlGrad" cx="35%" cy="30%" r="80%">
+          <stop offset="0%" stop-color="#fffbe8"/>
+          <stop offset="60%" stop-color="#f6d96b"/>
+          <stop offset="100%" stop-color="#e0ab2e"/>
+        </radialGradient>
+        <radialGradient id="auraGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="55%" stop-color="#f7d774" stop-opacity="0"/>
+          <stop offset="85%" stop-color="#f7d774" stop-opacity=".45"/>
+          <stop offset="100%" stop-color="#f7d774" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="dragBody" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#6d4aa8"/>
+          <stop offset="55%" stop-color="#4a2f7a"/>
+          <stop offset="100%" stop-color="#2c1a52"/>
+        </linearGradient>
+        <linearGradient id="maneGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f0913e"/>
+          <stop offset="100%" stop-color="#c0304a"/>
+        </linearGradient>
+        <radialGradient id="dragAura" cx="50%" cy="50%" r="50%">
+          <stop offset="40%" stop-color="#ffd24a" stop-opacity="0"/>
+          <stop offset="72%" stop-color="#ffb638" stop-opacity=".5"/>
+          <stop offset="90%" stop-color="#e0503a" stop-opacity=".35"/>
+          <stop offset="100%" stop-color="#e0503a" stop-opacity="0"/>
+        </radialGradient>
         <clipPath id="bodyClip"><ellipse cx="100" cy="105" rx="74" ry="70"/></clipPath>
       </defs>
 
@@ -157,13 +211,18 @@
       </g>
 
       <g id="chara">
-        <!-- 팔: 왼쪽은 살짝 들고, 오른쪽은 내리고 (상태 따라 흔들림) -->
-        <g class="arm-l"><ellipse cx="21" cy="84" rx="11" ry="17" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-38 21 84)"/></g>
-        <g class="arm-r"><ellipse cx="180" cy="114" rx="11" ry="16" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(30 180 114)"/></g>
+        <!-- 승천 직전 황금 오라 (여의주 15개~) -->
+        <ellipse class="aura" cx="100" cy="105" rx="90" ry="86" fill="url(#auraGrad)"/>
 
-        <!-- 몽글몽글 뿔 (가시 아님) -->
-        <ellipse cx="60" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(-25 60 30)"/>
-        <ellipse cx="140" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(25 140 30)"/>
+        <!-- 몽글몽글 뿔 (여의주 모을수록 자람) -->
+        <g class="horns">
+          <ellipse cx="60" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(-25 60 30)"/>
+          <ellipse cx="140" cy="30" rx="11" ry="15" fill="#f3e3bd" stroke="#6b54a0" stroke-width="3" transform="rotate(25 140 30)"/>
+          <g class="horn-branch">
+            <ellipse cx="48" cy="21" rx="5.5" ry="9" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2.5" transform="rotate(-48 48 21)"/>
+            <ellipse cx="152" cy="21" rx="5.5" ry="9" fill="#f3e3bd" stroke="#6b54a0" stroke-width="2.5" transform="rotate(48 152 21)"/>
+          </g>
+        </g>
         <!-- 머리털 두 가닥 -->
         <path d="M97 40 C 95 29, 88 21, 79 25" fill="none" stroke="#6b54a0" stroke-width="3.5" stroke-linecap="round"/>
         <path d="M103 40 C 104 26, 112 18, 121 23" fill="none" stroke="#6b54a0" stroke-width="3.5" stroke-linecap="round"/>
@@ -181,6 +240,10 @@
         <!-- 볼터치 -->
         <ellipse cx="45" cy="122" rx="11" ry="6.5" fill="#f2a9c4" opacity=".85"/>
         <ellipse cx="155" cy="122" rx="11" ry="6.5" fill="#f2a9c4" opacity=".85"/>
+
+        <!-- 팔: 본체 앞 위쪽에 대칭으로 (복싱 글러브 위치와 맞춤, 상태 따라 흔들림) -->
+        <g class="arm-l"><ellipse cx="32" cy="112" rx="12" ry="16" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-22 32 112)"/></g>
+        <g class="arm-r"><ellipse cx="168" cy="112" rx="12" ry="16" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(22 168 112)"/></g>
 
         <!-- 눈 (커서 따라 굴러감) -->
         <g id="eyes">
@@ -242,9 +305,67 @@
           <ellipse cx="158" cy="123" rx="6.5" ry="5.5" fill="#e2606c" stroke="#b23a4b" stroke-width="2.5"/>
         </g>
 
+        <!-- 여의주: 모은 만큼 주변에 동동 (1개=3주, 2개=7주, 3개=15주) -->
+        <circle class="pearl p1" cx="34" cy="58" r="7" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
+        <circle class="pearl p2" cx="176" cy="76" r="6" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
+        <circle class="pearl p3" cx="168" cy="152" r="5.5" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="1.5"/>
+
         <!-- 반짝이 -->
-        <path class="spark s1" d="M28 48 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#cdbcf0"/>
-        <path class="spark s2" d="M178 62 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 Z" fill="#cdbcf0"/>
+        <path class="spark s1" d="M14 30 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3 Z" fill="#cdbcf0"/>
+        <path class="spark s2" d="M184 44 l2.5 6 6 2.5 -6 2.5 -2.5 6 -2.5 -6 -6 -2.5 6 -2.5 Z" fill="#cdbcf0"/>
+      </g>
+
+      <!-- ============ 최종 진화: 성체 용 (여의주 30개~) ============ -->
+      <g id="dragon">
+        <!-- 광배 -->
+        <circle class="d-aura" cx="100" cy="100" r="95" fill="url(#dragAura)"/>
+
+        <g class="d-float">
+          <!-- 서린 몸통 (뒤 코일) -->
+          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
+                fill="none" stroke="#2c1a52" stroke-width="30" stroke-linecap="round"/>
+          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
+                fill="none" stroke="url(#dragBody)" stroke-width="23" stroke-linecap="round"/>
+          <!-- 배 비늘 (금빛 점선) -->
+          <path d="M100 58 C 45 60, 40 120, 92 128 C 150 137, 152 190, 96 196 C 66 199, 46 186, 44 166"
+                fill="none" stroke="#e8c25a" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 11" opacity=".8"/>
+          <!-- 등 갈기 (붉은 지느러미) -->
+          <path d="M100 52 q-10 -12 -22 -8 q10 2 12 12 q-14 -8 -26 2 q12 0 16 12 q-16 -4 -24 10"
+                fill="url(#maneGrad)" stroke="#8f2233" stroke-width="2"/>
+
+          <!-- 앞발 + 여의주 -->
+          <g class="d-claw">
+            <path d="M120 168 q16 -4 24 6 q-4 6 -12 6 q4 6 -2 10 q-6 -2 -8 -8 q-8 2 -12 -4 q4 -10 10 -16 Z"
+                  fill="#3a2360" stroke="#1f1240" stroke-width="2"/>
+            <circle cx="128" cy="176" r="16" fill="url(#pearlGrad)" stroke="#c9a227" stroke-width="2"/>
+            <circle cx="122" cy="170" r="4.5" fill="#fffef0" opacity=".9"/>
+          </g>
+
+          <!-- 머리 -->
+          <g class="d-head">
+            <!-- 금빛 사슴뿔 (여러 갈래) -->
+            <path d="M84 40 C 78 20, 66 14, 60 4 M72 24 C 62 20, 56 12, 58 4" fill="none" stroke="#f2c94c" stroke-width="5" stroke-linecap="round"/>
+            <path d="M116 40 C 122 20, 134 14, 140 4 M128 24 C 138 20, 144 12, 142 4" fill="none" stroke="#f2c94c" stroke-width="5" stroke-linecap="round"/>
+            <!-- 흩날리는 수염 -->
+            <path class="whisker-l" d="M74 66 C 38 66, 20 50, 8 30" fill="none" stroke="#f2c94c" stroke-width="3.5" stroke-linecap="round"/>
+            <path class="whisker-r" d="M126 66 C 162 66, 180 50, 192 30" fill="none" stroke="#f2c94c" stroke-width="3.5" stroke-linecap="round"/>
+            <!-- 얼굴 -->
+            <path d="M100 30 C 74 30, 66 54, 72 70 C 78 84, 122 84, 128 70 C 134 54, 126 30, 100 30 Z"
+                  fill="url(#dragBody)" stroke="#1f1240" stroke-width="3"/>
+            <!-- 주둥이 -->
+            <ellipse cx="100" cy="72" rx="22" ry="13" fill="#5a3d90"/>
+            <!-- 콧구멍 -->
+            <circle cx="92" cy="70" r="2.2" fill="#1f1240"/><circle cx="108" cy="70" r="2.2" fill="#1f1240"/>
+            <!-- 날카로운 눈 (금빛 광채) -->
+            <path d="M78 52 l16 5 -15 4 Z" fill="#ffe98a" stroke="#b8860b" stroke-width="1.5"/>
+            <path d="M122 52 l-16 5 15 4 Z" fill="#ffe98a" stroke="#b8860b" stroke-width="1.5"/>
+            <circle cx="84" cy="55" r="2.3" fill="#3a1010"/><circle cx="116" cy="55" r="2.3" fill="#3a1010"/>
+            <!-- 눈썹 이마 뿔 융기 -->
+            <path d="M74 48 q10 -6 22 -2 M126 48 q-10 -6 -22 -2" fill="none" stroke="#2c1a52" stroke-width="3" stroke-linecap="round"/>
+            <!-- 송곳니 -->
+            <path d="M90 80 l3 8 3 -7 Z" fill="#fff"/><path d="M110 80 l-3 8 -3 -7 Z" fill="#fff"/>
+          </g>
+        </g>
       </g>
     </svg>
     <div class="qmark">?</div><div class="qmark q2">?</div>
@@ -252,6 +373,7 @@
   </div>
   <div id="chips">
     <div class="chip" id="drag-handle">⠿ 이동</div>
+    <div class="chip" id="orb-chip" style="background:rgba(160,120,25,.8)">여의주 0</div>
     <div class="chip" id="stats-chip">통계 없음</div>
     <div class="chip" id="status">연결 대기...</div>
   </div>
@@ -267,8 +389,12 @@
 
   let forceClicks = 0;
   let forcedThrough = false; // "그래도 할래" 3번 뚫은 상태 (이번 매칭 동안 유지)
-  let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null } };
+  let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null }, orbs: 0 };
   let pokeTimer = null;
+  let tierClass = null; // 여의주 성장 단계 (t1/t2/t3)
+
+  const orbChip = document.getElementById('orb-chip');
+  function tierOf(orbs) { return orbs >= 30 ? 't4' : orbs >= 15 ? 't3' : orbs >= 7 ? 't2' : orbs >= 3 ? 't1' : null; }
 
   // ---- 대사 (이무기 페르소나: '한 판만 더' 하다 승천 실패한 영물) ----
   function violationLine(v, phase) {
@@ -297,6 +423,9 @@
     const { phase, verdict } = state;
     const bad = verdict.violations.length > 0;
     const s = verdict.stats;
+
+    tierClass = tierOf(state.orbs || 0);
+    orbChip.textContent = `여의주 ${state.orbs || 0}`;
 
     if (s) {
       statsChip.textContent = `오늘 ${s.todayCount}판 · ${s.lossStreak}연패`;
@@ -374,6 +503,7 @@
   function applyMode(mode) {
     char.className = '';
     char.classList.add(mode);
+    if (tierClass) char.classList.add(tierClass); // 성장 단계는 어떤 상태에서도 유지
   }
   function setLine(line) {
     if (line) { bubble.innerHTML = line; bubble.classList.add('show'); }
@@ -469,6 +599,20 @@
         ? '진심이야? 한 번 더 생각해.'
         : '연패 중엔 실력보다 멘탈이 판을 져. 내가 겪어봐서 알아.');
     }
+  });
+
+  // 여의주 획득 연출: 어제 약속을 지켰을 때 (또는 조종판 연출 버튼)
+  window.tracker.onOrbEarned((n) => {
+    lastState = { ...lastState, orbs: n };
+    tierClass = tierOf(n);
+    orbChip.textContent = `여의주 ${n}`;
+    applyMode('happy-mode');
+    setLine(`어제 약속 지켰네. <b>여의주 +1</b> — 이제 ${n}개야. 다 모으면 나 진짜 용 된다?`);
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => spawnSpark(60 + Math.random() * 80, 40 + Math.random() * 80), i * 180);
+    }
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 5000);
   });
 
   window.tracker.onState(render);

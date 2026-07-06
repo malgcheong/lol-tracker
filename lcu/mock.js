@@ -6,7 +6,7 @@ const { EventEmitter } = require('events');
 class MockLcuClient extends EventEmitter {
   start() {
     this.emit('status', 'mock 모드 - 조종판 버튼으로 상태를 바꿔보세요');
-    this.setPhase('Lobby'); // 개발 편의: 켜자마자 캐릭터가 깨어있게 로비에서 시작
+    this.setPhase('Lobby'); // 개발 편의: 켜자마자 로비에서 시작
   }
 
   setPhase(phase) {

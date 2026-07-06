@@ -10,9 +10,16 @@ contextBridge.exposeInMainWorld('tracker', {
   // 캐릭터
   snooze: (minutes) => ipcRenderer.send('snooze', minutes),
 
+  // 블로커 (플레이 버튼 덮기)
+  onBlock: (cb) => ipcRenderer.on('block', (_e, v) => cb(v)),
+  forceThrough: () => ipcRenderer.send('force-through'),
+
   // 조종판 (mock 전용)
   setPhase: (phase) => ipcRenderer.send('mock-set-phase', phase),
   setStats: (fake) => ipcRenderer.send('mock-set-stats', fake),
+  setOrbs: (n) => ipcRenderer.send('mock-set-orbs', n),
+  earnOrb: () => ipcRenderer.send('mock-earn-orb'),
+  onOrbEarned: (cb) => ipcRenderer.on('orb-earned', (_e, n) => cb(n)),
 
   // 설정 화면
   getSettings: () => ipcRenderer.invoke('settings-get'),

@@ -52,6 +52,15 @@
   </div>
   <button id="apply-stats">가짜 통계 적용</button>
 
+  <h2>여의주 (성장 단계 미리보기)</h2>
+  <p>실제로는 약속 지킨 날마다 +1.<br>0~2 아기 / 3~ 뿔 성장 / 7~ 가지 / 15~ 금빛+오라</p>
+  <div class="stat-row">
+    <label>여의주 개수</label>
+    <input id="fake-orbs" type="number" value="0" min="0" max="99">
+  </div>
+  <button id="apply-orbs">개수 적용</button>
+  <button id="earn-orb">+1 획득 연출 보기</button>
+
 <script>
   const nowEl = document.getElementById('now');
   const phaseBtns = document.querySelectorAll('button[data-phase]');
@@ -67,6 +76,13 @@
       todayCount: Number(document.getElementById('fake-today').value),
       lossStreak: Number(document.getElementById('fake-streak').value),
     });
+  });
+
+  document.getElementById('apply-orbs').addEventListener('click', () => {
+    window.tracker.setOrbs(Number(document.getElementById('fake-orbs').value));
+  });
+  document.getElementById('earn-orb').addEventListener('click', () => {
+    window.tracker.earnOrb();
   });
 
   window.tracker.onState(({ phase }) => {

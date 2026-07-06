@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>블로커</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+  html, body { background: transparent; overflow: hidden; height: 100%; }
+  body { font-family: 'Malgun Gothic', sans-serif; display: flex; align-items: center; justify-content: center; }
+
+  /* 불투명 패널: 밑의 플레이 버튼을 시각적으로도 가림 */
+  #panel {
+    width: 290px; background: #2a1a4d;
+    border: 3px solid #f2c94c; border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.5);
+    padding: 14px 16px 16px; text-align: center; color: #fff;
+    animation: pop .25s ease-out;
+  }
+  @keyframes pop { from { transform: scale(.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  #face { font-size: 34px; margin-bottom: 4px; animation: shake .4s infinite; }
+  @keyframes shake { 0%,100%{transform:translateX(0) rotate(0)} 25%{transform:translateX(-3px) rotate(-4deg)} 75%{transform:translateX(3px) rotate(4deg)} }
+  #msg { font-size: 14px; line-height: 1.5; margin-bottom: 12px; }
+  #msg b { color: #ffd54a; }
+  .btns { display: flex; flex-direction: column; gap: 7px; }
+  button {
+    padding: 9px; font-size: 13px; cursor: pointer; border-radius: 10px; border: none; font-weight: bold;
+  }
+  #snooze { background: #f2c94c; color: #2a1a4d; }
+  #snooze:hover { background: #ffd76b; }
+  #force { background: transparent; color: #b9a9dd; border: 1.5px solid #6b54a0; font-weight: normal; }
+  #force:hover { background: #3a2b6a; }
+</style>
+</head>
+<body>
+  <div id="panel">
+    <div id="face">🐲</div>
+    <div id="msg"></div>
+    <div class="btns">
+      <button id="snooze">15분 쉴게 (버튼 열어줘)</button>
+      <button id="force">그래도 할래 (0/3)</button>
+    </div>
+  </div>
+
+<script>
+  const msgEl = document.getElementById('msg');
+  const forceBtn = document.getElementById('force');
+  let forceClicks = 0;
+
+  function lineFor(v) {
+    const ls = v.violations.find((x) => x.type === 'lossStreak');
+    const dl = v.violations.find((x) => x.type === 'daily');
+    if (ls) return `<b>${ls.n}연패</b> 중이야. 본전 추격은 도박꾼이 다 잃는 길이야.<br>이 버튼, 내가 막고 있을게.`;
+    if (dl) return `오늘 <b>${dl.n}판</b> — 약속은 ${dl.limit}판이었잖아.<br>이건 재미가 아니라 관성이야.`;
+    return '여기서 멈추자. 내가 버튼 막고 있을게.';
+  }
+
+  window.tracker.onBlock((v) => {
+    forceClicks = 0;
+    forceBtn.textContent = '그래도 할래 (0/3)';
+    msgEl.innerHTML = lineFor(v);
+  });
+
+  document.getElementById('snooze').addEventListener('click', () => window.tracker.snooze(15));
+
+  // 3번 눌러야 비켜줌 (핸드오프 문서 6-3 '강' 단계 마찰)
+  forceBtn.addEventListener('click', () => {
+    forceClicks++;
+    if (forceClicks >= 3) {
+      window.tracker.forceThrough();
+    } else {
+      forceBtn.textContent = `그래도 할래 (${forceClicks}/3)`;
+      msgEl.innerHTML = forceClicks === 1
+        ? '진심이야? 한 번 더 생각해.<br>지금 이 멘탈로 이길 수 있어?'
+        : '<b>마지막이야.</b> 한 번 더 누르면 비켜줄게.<br>대신 지면 나랑 얘기 좀 해.';
+    }
+  });
+</script>
+</body>
+</html>
