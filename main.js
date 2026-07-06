@@ -32,7 +32,11 @@ try {
 const STATE_PATH = path.join(__dirname, 'state.json');
 let orbState = { orbs: 0, lastSeen: null }; // lastSeen: { day, count } - 마지막으로 본 '논리적 하루'와 그날 판수
 try { orbState = { ...orbState, ...JSON.parse(fs.readFileSync(STATE_PATH, 'utf8')) }; } catch {}
-function saveOrbState() { fs.writeFileSync(STATE_PATH, JSON.stringify(orbState, null, 2)); }
+function saveOrbState() {
+  // mock 모드는 조종판 미리보기용이라 파일에 안 씀 — 실제 진행도(state.json)를 안 건드림
+  if (config.mode === 'mock') return;
+  fs.writeFileSync(STATE_PATH, JSON.stringify(orbState, null, 2));
+}
 // 새벽 리셋 시각 기준의 '논리적 하루' 키 (예: 새벽 5시 전은 전날로)
 function dayKey() {
   const d = new Date();
