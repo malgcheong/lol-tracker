@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('tracker', {
 
   // 설정 화면
   getSettings: () => ipcRenderer.invoke('settings-get'),
+  getReport: () => ipcRenderer.invoke('report-get'),
   saveSettings: (s) => ipcRenderer.invoke('settings-save', s),
   testStats: (s) => ipcRenderer.invoke('stats-test', s),
 });

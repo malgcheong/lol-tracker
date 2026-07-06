@@ -467,6 +467,7 @@
       if (bad) {
         mode = 'angry-mode';
         line = verdict.violations.map((v) => violationLine(v, 'Lobby')).join('<br>');
+        if (verdict.violations.some((v) => v.night)) line += '<br>지금 심야라 기준을 낮췄어 — 이 시간이 제일 위험하거든.';
       } else if (verdict.hasData) {
         mode = 'bounce-mode';
         line = `오늘 ${s.todayCount}판${s.lossStreak ? `, ${s.lossStreak}연패` : ''}. 아직 약속 안에 있어. 재밌게 해.`;
@@ -478,6 +479,7 @@
       if (bad && !forcedThrough) {
         mode = 'angry-mode';
         line = verdict.violations.map((v) => violationLine(v, 'Matchmaking')).join('<br>');
+        if (verdict.violations.some((v) => v.night)) line += '<br>심야라 기준 낮췄어. 이 시간 연패가 제일 아파.';
         showButtons = true;
       } else if (bad && forcedThrough) {
         mode = 'small-mode';

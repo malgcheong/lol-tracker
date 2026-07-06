@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>주간 리포트</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 20px; background: #1e2328; color: #f0e6d2; margin: 0; }
+  h1 { font-size: 16px; margin: 0 0 3px; color: #c8aa6e; }
+  .sub { font-size: 11px; color: #a09b8c; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .tile {
+    background: #14181c; border: 1px solid #3c3c41; border-radius: 8px;
+    padding: 12px; text-align: center;
+  }
+  .tile .num { font-size: 22px; font-weight: bold; color: #f0e6d2; }
+  .tile .num small { font-size: 12px; font-weight: normal; color: #a09b8c; }
+  .tile .lbl { font-size: 11px; color: #a09b8c; margin-top: 3px; }
+  .tile.warn .num { color: #e88; }
+  .insight {
+    background: #26221a; border: 1px solid #785a28; border-radius: 8px;
+    padding: 13px 14px; font-size: 13.5px; line-height: 1.6; color: #e8d9ae;
+  }
+  .insight::before { content: '🐉 '; }
+  #loading { text-align: center; color: #a09b8c; padding: 60px 0; font-size: 13px; }
+  #err { display: none; background: #3a1a1a; color: #e88; border-radius: 8px; padding: 12px; font-size: 12.5px; line-height: 1.5; }
+  button {
+    width: 100%; margin-top: 14px; padding: 10px; font-size: 13px; cursor: pointer;
+    background: #3c3c41; color: #f0e6d2; border: 1px solid #785a28; border-radius: 6px;
+  }
+  button:hover { background: #785a28; }
+  #sample-tag { display: none; font-size: 10px; color: #c8aa6e; border: 1px solid #785a28; border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+  <h1>주간 리포트 <span id="sample-tag">mock 샘플</span></h1>
+  <div class="sub">최근 7일 · 패턴은 스스로 볼 때 제일 잘 보인다</div>
+
+  <div id="loading">전적 분석 중...</div>
+  <div id="err"></div>
+
+  <div id="body" style="display:none">
+    <div class="grid">
+      <div class="tile"><div class="num" id="t-total">-</div><div class="lbl">총 판수</div></div>
+      <div class="tile"><div class="num" id="t-time">-</div><div class="lbl">플레이 시간</div></div>
+      <div class="tile"><div class="num" id="t-record">-</div><div class="lbl">승 / 패 (승률)</div></div>
+      <div class="tile" id="tile-night"><div class="num" id="t-night">-</div><div class="lbl">심야 판수</div></div>
+      <div class="tile" id="tile-loss"><div class="num" id="t-loss">-</div><div class="lbl">연패 세션 (심야 시작)</div></div>
+      <div class="tile" id="tile-max"><div class="num" id="t-max">-</div><div class="lbl">하루 최다</div></div>
+    </div>
+    <div class="insight" id="t-insight"></div>
+  </div>
+
+  <button id="refresh">다시 분석</button>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  async function load() {
+    $('loading').style.display = 'block';
+    $('body').style.display = 'none';
+    $('err').style.display = 'none';
+
+    const res = await window.tracker.getReport();
+    $('loading').style.display = 'none';
+    if (!res.ok) {
+      $('err').style.display = 'block';
+      $('err').textContent = '분석 실패: ' + res.error;
+      return;
+    }
+    const r = res.report;
+    $('sample-tag').style.display = res.sample ? 'inline-block' : 'none';
+
+    const h = Math.floor(r.playSec / 3600), m = Math.round((r.playSec % 3600) / 60);
+    $('t-total').textContent = r.total;
+    $('t-time').innerHTML = h ? `${h}<small>시간</small> ${m}<small>분</small>` : `${m}<small>분</small>`;
+    $('t-record').innerHTML = `${r.wins} / ${r.losses} <small>(${r.winrate}%)</small>`;
+    $('t-night').textContent = r.nightCount;
+    $('t-loss').innerHTML = `${r.lossSessions} <small>(심야 ${r.nightLossSessions})</small>`;
+    $('t-max').innerHTML = r.maxDay ? `${r.maxDay[1]}<small>판</small>` : '-';
+
+    // 아픈 곳은 빨갛게
+    $('tile-night').classList.toggle('warn', r.total >= 5 && r.nightCount / r.total >= 0.4);
+    $('tile-loss').classList.toggle('warn', r.lossSessions >= 2 && r.nightLossSessions / r.lossSessions >= 0.5);
+
+    $('t-insight').textContent = r.insight;
+    $('body').style.display = 'block';
+  }
+
+  $('refresh').addEventListener('click', load);
+  load();
+</script>
+</body>
+</html>

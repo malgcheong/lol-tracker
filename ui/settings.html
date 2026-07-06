@@ -63,6 +63,20 @@
   <input id="dayResetHour" type="number" min="0" max="23">
   <div class="hint">5 = 새벽 5시. 자정 넘긴 심야 게임도 "오늘 판수"에 계속 쌓이게 하는 장치.</div>
 
+  <div class="row">
+    <div>
+      <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+        <input id="nightTighten" type="checkbox" style="width:auto; accent-color:#c8aa6e"> 심야 가중
+      </label>
+      <div class="hint">심야엔 판수·연패 한도 -1.<br>낮 3연패 ≠ 새벽 3연패.</div>
+    </div>
+    <div>
+      <label>심야 시작 시각</label>
+      <input id="nightStartHour" type="number" min="0" max="23">
+      <div class="hint">23 = 밤 11시부터 리셋 시각까지</div>
+    </div>
+  </div>
+
   <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
     <input id="hardMode" type="checkbox" style="width:auto; accent-color:#c8aa6e"> 하드 모드
   </label>
@@ -77,7 +91,7 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour'];
+  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour'];
 
   function readForm() {
     return {
@@ -87,6 +101,8 @@
       lossStreakLimit: Number($('lossStreakLimit').value),
       dayResetHour: Number($('dayResetHour').value),
       hardMode: $('hardMode').checked,
+      nightTighten: $('nightTighten').checked,
+      nightStartHour: Number($('nightStartHour').value),
     };
   }
 
@@ -99,6 +115,7 @@
   window.tracker.getSettings().then((s) => {
     fields.forEach((f) => { $(f).value = s[f]; });
     $('hardMode').checked = !!s.hardMode;
+    $('nightTighten').checked = !!s.nightTighten;
   });
 
   $('btn-test').addEventListener('click', async () => {

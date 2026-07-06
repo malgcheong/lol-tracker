@@ -6,6 +6,7 @@ const fs = require('fs');
 const { exec } = require('child_process');
 
 const { RiotStats } = require('./stats/riot');
+const { buildWeeklyReport } = require('./stats/report');
 
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
 
@@ -18,6 +19,8 @@ const DEFAULT_SETTINGS = {
   lossStreakLimit: 2,// 연패 한도 (이만큼 연패면 개입, 0 = 끔)
   dayResetHour: 5,   // '오늘'이 리셋되는 시각. 새벽 5시 전 게임은 전날로 (심야 롤은 오늘에 누적)
   hardMode: false,   // 하드 모드: 하루 한도 초과 시 롤 클라이언트 강제 종료 + 재실행 감시
+  nightTighten: true,// 심야 가중: 심야엔 판수/연패 한도 -1 (낮 3연패 ≠ 새벽 3연패)
+  nightStartHour: 23,// 심야 시작 시각 (여기부터 dayResetHour까지가 심야)
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -70,16 +73,27 @@ let blockerWin = null;
 let forcedThroughMain = false; // 이번 로비 세션 동안 "그래도 할래"로 뚫었는지
 
 // ---- 위반 판단 (개입 트리거, 핸드오프 문서 6-1) ----
+// 심야 가중: 심야(nightStartHour~dayResetHour)엔 한도가 1씩 낮아짐. 연속 기록 판정은 기본 한도 기준.
+function isNightNow() {
+  if (!settings.nightTighten) return false;
+  const h = new Date().getHours();
+  return settings.nightStartHour > settings.dayResetHour
+    ? h >= settings.nightStartHour || h < settings.dayResetHour
+    : h >= settings.nightStartHour && h < settings.dayResetHour;
+}
 function computeVerdict() {
-  if (!stats) return { hasData: false, violations: [], stats: null, error: statsError };
+  if (!stats) return { hasData: false, violations: [], stats: null, error: statsError, night: false };
+  const night = isNightNow();
+  const dLimit = settings.dailyLimit > 0 ? Math.max(1, settings.dailyLimit - (night ? 1 : 0)) : 0;
+  const lLimit = settings.lossStreakLimit > 0 ? Math.max(1, settings.lossStreakLimit - (night ? 1 : 0)) : 0;
   const violations = [];
-  if (settings.lossStreakLimit > 0 && stats.lossStreak >= settings.lossStreakLimit) {
-    violations.push({ type: 'lossStreak', n: stats.lossStreak, limit: settings.lossStreakLimit });
+  if (lLimit > 0 && stats.lossStreak >= lLimit) {
+    violations.push({ type: 'lossStreak', n: stats.lossStreak, limit: lLimit, night: night && lLimit < settings.lossStreakLimit });
   }
-  if (settings.dailyLimit > 0 && stats.todayCount >= settings.dailyLimit) {
-    violations.push({ type: 'daily', n: stats.todayCount, limit: settings.dailyLimit });
+  if (dLimit > 0 && stats.todayCount >= dLimit) {
+    violations.push({ type: 'daily', n: stats.todayCount, limit: dLimit, night: night && dLimit < settings.dailyLimit });
   }
-  return { hasData: true, violations, stats, error: null };
+  return { hasData: true, violations, stats, error: null, night };
 }
 
 function broadcast(channel, payload) {
@@ -204,6 +218,11 @@ async function refreshStats(reason) {
       broadcast('streak-reset', 0);
     }
     orbState.lastSeen = { day, count: stats.todayCount };
+    // 일요일이면 주간 리포트 자동 1회 (핸드오프 문서 7)
+    if (config.mode === 'real' && new Date().getDay() === 0 && orbState.lastReport !== day) {
+      orbState.lastReport = day;
+      openReportWindow();
+    }
     saveOrbState();
   } catch (err) {
     statsError = err.message;
@@ -236,6 +255,18 @@ function createControlWindow() {
   controlWin.on('closed', () => { controlWin = null; });
 }
 
+let reportWin = null;
+function openReportWindow() {
+  if (reportWin && !reportWin.isDestroyed()) { reportWin.focus(); return; }
+  reportWin = new BrowserWindow({
+    width: 420, height: 620,
+    title: '주간 리포트',
+    webPreferences: { preload: path.join(__dirname, 'preload.js') },
+  });
+  reportWin.loadFile(path.join(__dirname, 'ui', 'report.html'));
+  reportWin.on('closed', () => { reportWin = null; });
+}
+
 function openSettingsWindow() {
   if (settingsWin && !settingsWin.isDestroyed()) { settingsWin.focus(); return; }
   settingsWin = new BrowserWindow({
@@ -252,6 +283,7 @@ function createTray() {
   tray.setToolTip('롤 트래커');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '설정', click: openSettingsWindow },
+    { label: '주간 리포트', click: openReportWindow },
     { label: '통계 새로고침', click: () => refreshStats('수동') },
     { type: 'separator' },
     { label: '종료', click: () => app.quit() },
@@ -371,6 +403,33 @@ ipcMain.handle('settings-save', (_e, next) => {
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
   refreshStats('설정 저장');
   return { ok: true };
+});
+
+// 주간 리포트: 최근 7일 매치 분석. mock 모드는 샘플 데이터로 UI 확인
+ipcMain.handle('report-get', async () => {
+  try {
+    if (config.mode === 'mock') {
+      const fake = [];
+      const now = Date.now();
+      // 샘플: 일주일간 21판, 심야 연패 세션 포함
+      const pattern = [
+        [6, 14, [1, 1, 0]], [5, 23, [0, 0, 1]], [5, 24, [0, 0]],
+        [3, 15, [1, 0, 1, 1]], [2, 23, [0, 0, 0]], [1, 25, [1, 0]], [0, 20, [1, 1, 0, 0]],
+      ];
+      for (const [daysAgo, hour, results] of pattern) {
+        results.forEach((win, i) => {
+          const t = new Date(now - daysAgo * 86400e3);
+          t.setHours(hour % 24, i * 40, 0, 0);
+          fake.push({ startedAt: t.getTime(), duration: 1700 + i * 300, win: !!win, remake: false });
+        });
+      }
+      return { ok: true, sample: true, report: buildWeeklyReport(fake, settings) };
+    }
+    const matches = await riot.matchesSince(7, settings);
+    return { ok: true, sample: false, report: buildWeeklyReport(matches, settings) };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 });
 
 // 설정 화면의 "연결 테스트" - 저장 전 입력값으로 바로 조회해봄

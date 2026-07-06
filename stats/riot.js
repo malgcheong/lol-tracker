@@ -66,17 +66,7 @@ class RiotStats {
     let streakBroken = false;
 
     for (const id of ids) { // ids는 최신순
-      let m = this.matchCache.get(id);
-      if (!m) {
-        const full = await this.api(`/lol/match/v5/matches/${id}`, apiKey);
-        const me = full.info.participants.find((p) => p.puuid === puuid);
-        m = {
-          startedAt: full.info.gameStartTimestamp,
-          win: me ? me.win : true,
-          remake: full.info.gameDuration < REMAKE_SECONDS,
-        };
-        this.matchCache.set(id, m);
-      }
+      const m = await this.getMatch(id, puuid, apiKey);
       if (m.remake) continue;
 
       if (m.startedAt >= dayStart) todayCount++;
@@ -91,5 +81,35 @@ class RiotStats {
     return { todayCount, lossStreak, fetchedAt: Date.now() };
   }
 }
+
+// 경기 상세 (불변이라 캐시)
+RiotStats.prototype.getMatch = async function (id, puuid, apiKey) {
+  let m = this.matchCache.get(id);
+  if (!m) {
+    const full = await this.api(`/lol/match/v5/matches/${id}`, apiKey);
+    const me = full.info.participants.find((p) => p.puuid === puuid);
+    m = {
+      startedAt: full.info.gameStartTimestamp,
+      duration: full.info.gameDuration,
+      win: me ? me.win : true,
+      remake: full.info.gameDuration < REMAKE_SECONDS,
+    };
+    this.matchCache.set(id, m);
+  }
+  return m;
+};
+
+// 최근 N일치 경기 전부 (주간 리포트용)
+RiotStats.prototype.matchesSince = async function (daysBack, { riotId, apiKey }) {
+  const puuid = await this.resolvePuuid(riotId, apiKey);
+  const startTime = Math.floor((Date.now() - daysBack * 24 * 3600 * 1000) / 1000);
+  const ids = await this.api(
+    `/lol/match/v5/matches/by-puuid/${puuid}/ids?startTime=${startTime}&count=100`,
+    apiKey
+  );
+  const out = [];
+  for (const id of ids) out.push(await this.getMatch(id, puuid, apiKey));
+  return out;
+};
 
 module.exports = { RiotStats };
