@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   nightTighten: true,// 심야 가중: 심야엔 판수/연패 한도 -1 (낮 3연패 ≠ 새벽 3연패)
   nightStartHour: 23,// 심야 시작 시각 (여기부터 dayResetHour까지가 심야)
   deepseekKey: '',   // DeepSeek API 키 (선택): 넣으면 게임 끝날 때마다 AI가 판 피드백 한마디 (게임당 1콜)
+  defaultTasks: '빨래, 청소, 침대 정리, 샤워, 운동', // 매일 자동 등록되는 기본 할 일 (쉼표 구분, 비우면 없음)
 };
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -89,7 +90,11 @@ function isNightNow() {
 // 오늘의 할 일 (게임을 보상으로: 다 끝내기 전엔 위반 취급 — 프리맥 원리)
 function todayTasks() {
   const day = dayKey();
-  if (!orbState.tasks || orbState.tasks.day !== day) orbState.tasks = { day, items: [] };
+  if (!orbState.tasks || orbState.tasks.day !== day) {
+    // 새 하루: 기본 할 일 자동 등록
+    const defaults = (settings.defaultTasks || '').split(',').map((s) => s.trim()).filter(Boolean);
+    orbState.tasks = { day, items: defaults.map((text) => ({ text, done: false })) };
+  }
   return orbState.tasks;
 }
 

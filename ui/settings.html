@@ -74,6 +74,10 @@
   <input id="dayResetHour" type="number" min="0" max="23">
   <div class="hint">5 = 새벽 5시. 자정 넘긴 심야 게임도 "오늘 판수"에 계속 쌓이게 하는 장치.</div>
 
+  <label>매일 기본 할 일</label>
+  <input id="defaultTasks" placeholder="빨래, 청소, 침대 정리, 샤워, 운동">
+  <div class="hint">쉼표로 구분. 매일 새 하루가 시작되면 "오늘 할 일"에 자동 등록됩니다. 비우면 자동 등록 없음.</div>
+
   <label>DeepSeek API 키 (선택)</label>
   <input id="deepseekKey" placeholder="sk-...">
   <div class="hint">넣으면 게임이 끝날 때마다 몽뿔이가 그 판 데이터를 보고 <b>AI 한마디</b>를 해줍니다 (게임당 1회 호출).<br>
@@ -107,7 +111,7 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour', 'deepseekKey'];
+  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour', 'deepseekKey', 'defaultTasks'];
 
   function readForm() {
     return {
@@ -120,6 +124,7 @@
       nightTighten: $('nightTighten').checked,
       nightStartHour: Number($('nightStartHour').value),
       deepseekKey: $('deepseekKey').value.trim(),
+      defaultTasks: $('defaultTasks').value.trim(),
     };
   }
 
