@@ -157,7 +157,7 @@ function findClientRect() {
 function ensureBlockerWindow() {
   if (blockerWin && !blockerWin.isDestroyed()) return;
   blockerWin = new BrowserWindow({
-    width: 300, height: 220,
+    width: 380, height: 250,
     transparent: true, frame: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
@@ -182,15 +182,17 @@ async function updateBlocker() {
   const rect = await findClientRect();
   if (!rect) {
     // 클라 창을 못 찾으면 버튼을 못 덮음 → 캐릭터 잔소리(character.html)로 폴백
+    console.log('[blocker] 롤 클라 창을 못 찾음 (창 제목 "League of Legends" 탐색 실패)');
     if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide();
     return;
   }
 
   ensureBlockerWindow();
-  const bw = 300, bh = 220;
-  // 플레이 버튼 = 클라 우하단. 그 위에 얹는다.
-  const bx = Math.round(rect.x + rect.w - bw - 24);
-  const by = Math.round(rect.y + rect.h - bh - 12);
+  const bw = 380, bh = 250;
+  // "게임 찾기" 버튼 = 로비 화면 하단 중앙. 그 위에 얹는다.
+  const bx = Math.round(rect.x + rect.w / 2 - bw / 2);
+  const by = Math.round(rect.y + rect.h - bh - 16);
+  console.log(`[blocker] 클라 창 (${rect.x},${rect.y}) ${rect.w}x${rect.h} → 블로커 (${bx},${by}) ${bw}x${bh}`);
   blockerWin.setBounds({ x: bx, y: by, width: bw, height: bh });
   blockerWin.showInactive(); // 포커스는 뺏지 않되 위에 뜸
   blockerWin.webContents.send('block', v);
