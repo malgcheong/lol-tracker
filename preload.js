@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('tracker', {
 
   // 캐릭터
   snooze: (minutes) => ipcRenderer.send('snooze', minutes),
+  moveBy: (dx, dy) => ipcRenderer.send('char-move-by', { dx, dy }),
 
   // 블로커 (플레이 버튼 덮기)
   onBlock: (cb) => ipcRenderer.on('block', (_e, v) => cb(v)),

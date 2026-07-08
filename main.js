@@ -597,6 +597,13 @@ ipcMain.handle('stats-test', async (_e, candidate) => {
   }
 });
 
+// 캐릭터를 꾹 잡고 끌면 창이 딸려옴
+ipcMain.on('char-move-by', (_e, { dx, dy }) => {
+  if (!characterWin || characterWin.isDestroyed()) return;
+  const [x, y] = characterWin.getPosition();
+  characterWin.setPosition(Math.round(x + dx), Math.round(y + dy));
+});
+
 ipcMain.on('snooze', (_e, minutes) => {
   snoozeUntil = Date.now() + minutes * 60 * 1000;
   if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide(); // 버튼 즉시 열어줌

@@ -46,6 +46,15 @@
   #char svg { overflow: visible; } /* 명상 호흡 등으로 커져도 SVG 경계에서 안 잘리게 */
   #char.small-mode { transform: scale(.6); opacity: .8; }
 
+  /* 끌고 다닐 때: 놓으면 통통 자리 잡기 */
+  @keyframes settle {
+    0% { transform: rotate(0) translateY(0); }
+    30% { transform: translateY(4px); }
+    60% { transform: translateY(-3px) rotate(-1.5deg); }
+    100% { transform: none; }
+  }
+  #char.settle { animation: settle .5s ease-out; }
+
   /* 명상 호흡: 누르고 있는 동안 재생, 손 떼면 그 자세로 일시정지 */
   @keyframes medbreath {
     0%   { transform: scale(.94); }
@@ -644,10 +653,48 @@
     render(lastState);
   }
   document.getElementById('btn-stop-med').addEventListener('click', cancelMeditation);
-  char.addEventListener('mousedown', medHoldStart);
-  char.addEventListener('mouseleave', medHoldEnd); // 누른 채 캐릭터 밖으로 나가도 멈춤
-  window.addEventListener('mouseup', medHoldEnd);
   window.tracker.onMeditateStart(startMeditation);
+
+  // ---- 꾹 잡기: 명상 진행 + 잡은 채 움직이면 캐릭터가 딸려옴 (기우뚱 애니메이션) ----
+  let pressing = false, didDrag = false, dragAccum = 0, tiltResetTimer = null;
+
+  char.addEventListener('mousedown', () => {
+    pressing = true;
+    didDrag = false;
+    dragAccum = 0;
+    medHoldStart(); // 명상 중이면 호흡 시작 (아니면 내부에서 무시)
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!pressing) return;
+    const dx = e.movementX, dy = e.movementY;
+    if (!dx && !dy) return;
+    dragAccum += Math.abs(dx) + Math.abs(dy);
+    if (dragAccum > 6) didDrag = true; // 살짝 흔들린 건 클릭으로 침
+    window.tracker.moveBy(dx, dy); // 창이 마우스를 따라옴
+    // 끌리는 방향으로 기우뚱
+    const tilt = Math.max(-14, Math.min(14, dx * 1.5));
+    char.style.transition = 'transform .1s';
+    char.style.transform = `rotate(${tilt}deg)`;
+    clearTimeout(tiltResetTimer);
+    tiltResetTimer = setTimeout(() => {
+      char.style.transition = 'transform .25s';
+      char.style.transform = 'rotate(0deg)';
+    }, 120);
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!pressing) return;
+    pressing = false;
+    medHoldEnd(); // 명상 중이면 일시정지
+    char.style.transition = 'transform .3s';
+    char.style.transform = '';
+    if (didDrag) {
+      char.classList.add('settle'); // 놓으면 통통 자리 잡기
+      setTimeout(() => char.classList.remove('settle'), 550);
+      setTimeout(() => { didDrag = false; }, 80); // 드래그 직후 클릭(포크) 방지 해제
+    }
+  });
 
   // applyMode는 meditating 중에도 얼굴만 바꿀 수 있게 내부용 분리
   function applyModeRaw(mode) {
@@ -658,6 +705,7 @@
 
   // ---- 인터랙션: 찌르기/쓰다듬기 ----
   char.addEventListener('click', (e) => {
+    if (didDrag) { didDrag = false; return; } // 끌고 온 직후엔 찌르기로 안 침
     if (meditating) return; // 명상 중 클릭은 호흡 유지용 (mousedown/up이 처리)
     const mode = currentMode();
     const angry = mode === 'angry-mode';
