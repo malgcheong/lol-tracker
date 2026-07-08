@@ -118,9 +118,11 @@
 
   /* ---- 표정 전환 (기본: 방긋) ---- */
   .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
-  /* 끌려갈 때: >< 눈 (어떤 표정 상태보다 우선) */
+  /* 끌려갈 때: >< 눈 + 입 없음 (어떤 표정 상태보다 우선) */
   #char.drag-face .f-eyes-open, #char.drag-face .f-eyes-happy, #char.drag-face .f-eyes-sleep,
-  #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes { display: none !important; }
+  #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes,
+  #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o, #char.drag-face .f-mouth-wave,
+  #char.drag-face .f-mouth-tiny, #char.drag-face .im-mouth { display: none !important; }
   #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze { display: block !important; }
   /* 깜빡임 */
   #char.blink .f-eyes-open { display: none; }
@@ -393,8 +395,10 @@
             <ellipse cx="62" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
             <ellipse cx="138" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
             <!-- 입 + 송곳니 -->
-            <path d="M90 88 Q100 97 110 88" fill="none" stroke="#241b38" stroke-width="3.5" stroke-linecap="round"/>
-            <path d="M94 90 l2.5 7 2.5 -6 Z" fill="#fff"/>
+            <g class="im-mouth">
+              <path d="M90 88 Q100 97 110 88" fill="none" stroke="#241b38" stroke-width="3.5" stroke-linecap="round"/>
+              <path d="M94 90 l2.5 7 2.5 -6 Z" fill="#fff"/>
+            </g>
           </g>
 
           <!-- 손: 턱 밑에서 몸을 짚은 짜리 앞발 두 개 (복싱 땐 글러브로 교체) -->
@@ -670,8 +674,28 @@
   document.getElementById('btn-stop-med').addEventListener('click', cancelMeditation);
   window.tracker.onMeditateStart(startMeditation);
 
-  // ---- 꾹 잡기: 명상 진행 + 잡은 채 움직이면 캐릭터가 딸려옴 (기우뚱 애니메이션) ----
-  let pressing = false, didDrag = false, dragAccum = 0, tiltResetTimer = null;
+  // ---- 꾹 잡기: 명상 진행 + 잡은 채 움직이면 캐릭터가 딸려옴 ----
+  // 창 이동/기울기는 프레임당 1번(rAF)만 적용해서 떨림 없이 부드럽게
+  let pressing = false, didDrag = false, dragAccum = 0;
+  let pendDx = 0, pendDy = 0, tiltCur = 0, tiltTarget = 0, dragRaf = null;
+
+  function dragStep() {
+    if (pendDx || pendDy) {
+      window.tracker.moveBy(pendDx, pendDy);
+      pendDx = 0; pendDy = 0;
+    }
+    tiltTarget *= 0.82; // 입력이 멈추면 기울기 목표가 0으로 스르륵
+    tiltCur += (tiltTarget - tiltCur) * 0.25; // 부드럽게 따라가는 기우뚱
+    char.style.transform = `rotate(${tiltCur.toFixed(2)}deg)`;
+    if (pressing) {
+      dragRaf = requestAnimationFrame(dragStep);
+    } else {
+      dragRaf = null;
+      char.style.transition = 'transform .3s';
+      char.style.transform = '';
+      tiltCur = 0; tiltTarget = 0;
+    }
+  }
 
   char.addEventListener('mousedown', () => {
     pressing = true;
@@ -685,26 +709,23 @@
     const dx = e.movementX, dy = e.movementY;
     if (!dx && !dy) return;
     dragAccum += Math.abs(dx) + Math.abs(dy);
-    if (dragAccum > 6 && !didDrag) { didDrag = true; char.classList.add('drag-face'); } // 끌리기 시작 → >< 눈
-    window.tracker.moveBy(dx, dy); // 창이 마우스를 따라옴
-    // 끌리는 방향으로 기우뚱
-    const tilt = Math.max(-14, Math.min(14, dx * 1.5));
-    char.style.transition = 'transform .1s';
-    char.style.transform = `rotate(${tilt}deg)`;
-    clearTimeout(tiltResetTimer);
-    tiltResetTimer = setTimeout(() => {
-      char.style.transition = 'transform .25s';
-      char.style.transform = 'rotate(0deg)';
-    }, 120);
+    if (dragAccum > 6 && !didDrag) {
+      didDrag = true;
+      char.classList.add('drag-face'); // >< 눈 + 입 없음
+      char.style.transition = 'none';  // 드래그 중엔 transition 없이 rAF가 직접 제어
+      if (!dragRaf) dragRaf = requestAnimationFrame(dragStep);
+    }
+    if (didDrag) {
+      pendDx += dx; pendDy += dy; // 프레임에서 한 번에 이동
+      tiltTarget = Math.max(-14, Math.min(14, tiltTarget + dx * 0.6));
+    }
   });
 
   window.addEventListener('mouseup', () => {
     if (!pressing) return;
-    pressing = false;
+    pressing = false; // rAF 루프가 다음 프레임에 정리하고 멈춤
     medHoldEnd(); // 명상 중이면 일시정지
-    char.classList.remove('drag-face'); // >< 해제
-    char.style.transition = 'transform .3s';
-    char.style.transform = '';
+    char.classList.remove('drag-face');
     if (didDrag) {
       char.classList.add('settle'); // 놓으면 통통 자리 잡기
       setTimeout(() => char.classList.remove('settle'), 550);
