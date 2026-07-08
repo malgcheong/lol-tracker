@@ -43,7 +43,16 @@
   /* ---- 캐릭터: 컨셉시트 v1 (보라 물방울 이무기, 포탈 위 부유) ---- */
   #char { -webkit-app-region: no-drag; position: relative; width: 200px; height: 215px; cursor: pointer;
           transition: transform .3s, opacity .3s; }
+  #char svg { overflow: visible; } /* 명상 호흡 등으로 커져도 SVG 경계에서 안 잘리게 */
   #char.small-mode { transform: scale(.6); opacity: .8; }
+
+  /* 명상 호흡: 누르고 있는 동안 재생, 손 떼면 그 자세로 일시정지 */
+  @keyframes medbreath {
+    0%   { transform: scale(.94); }
+    30%  { transform: scale(1.16); }  /* 들이쉬기 ~4초 */
+    58%  { transform: scale(1.16); }  /* 멈춤 ~4초 */
+    100% { transform: scale(.94); }   /* 내쉬기 ~6초 */
+  }
 
   /* 본체만 떠다니고 포탈은 바닥에 남는다 (몽무기 #imugi도 동일하게 반응) */
   #chara, #imugi { transform-box: fill-box; transform-origin: center; animation: floaty 3s ease-in-out infinite; }
@@ -559,12 +568,6 @@
     const s = Math.max(0, Math.ceil(ms / 1000));
     return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
   }
-  function medBreathe(scale, ms) {
-    const g = activeBody();
-    g.style.animation = 'none'; // 평소 둥둥 애니메이션 잠시 끄고 호흡 스케일만
-    g.style.transition = `transform ${ms / 1000}s ease-in-out`;
-    g.style.transform = `scale(${scale})`;
-  }
   function medRestoreBody() {
     for (const g of [charaG, imugiG]) { g.style.animation = ''; g.style.transition = ''; g.style.transform = ''; }
   }
@@ -585,13 +588,15 @@
     medUI(true);
     setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 준비되면 눌러서 유지해.`);
   }
-  function medPhaseVisual() {
-    medBreathe(MED_PHASES[medPhaseIdx].scale, Math.max(300, medPhaseLeft));
-  }
   function medHoldStart() {
     if (!meditating || medHolding) return;
     medHolding = true;
-    medPhaseVisual();
+    // 누르는 동안 호흡 애니메이션 재생 (14초 = 들4+멈4+날6 주기와 동기)
+    const g = activeBody();
+    if (!String(g.style.animation).includes('medbreath')) {
+      g.style.animation = 'medbreath 14s ease-in-out infinite';
+    }
+    g.style.animationPlayState = 'running';
     if (!medTimer) {
       medTimer = setInterval(() => {
         if (!medHolding) return;
@@ -600,7 +605,6 @@
         if (medPhaseLeft <= 0) {
           medPhaseIdx = (medPhaseIdx + 1) % MED_PHASES.length;
           medPhaseLeft = MED_PHASES[medPhaseIdx].ms;
-          medPhaseVisual();
           medShownSec = -1;
         }
         const sec = Math.ceil(medRemain / 1000);
@@ -615,7 +619,7 @@
   function medHoldEnd() {
     if (!meditating || !medHolding) return;
     medHolding = false;
-    medBreathe(1, 800);
+    activeBody().style.animationPlayState = 'paused'; // 그 자세 그대로 멈춤
     setLine(`손 뗐네. 다시 <b>꾹</b> 누르면 이어져. <small>${mmss(medRemain)} 남음</small>`);
   }
   function finishMeditation() {
