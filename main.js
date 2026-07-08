@@ -25,7 +25,7 @@ const DEFAULT_SETTINGS = {
   deepseekKey: '',   // DeepSeek API 키 (선택): 넣으면 게임 끝날 때마다 AI가 판 피드백 한마디 (게임당 1콜)
   defaultTasks: '빨래, 청소, 침대 정리, 샤워, 운동', // 매일 자동 등록되는 기본 할 일 (쉼표 구분, 비우면 없음)
   quotes: '',        // 내가 적어둔 명언/다짐 (줄바꿈 구분): 캐릭터 혼잣말 + 블로커에 표시
-  meditationMinutes: 3, // 명상 시간 (분) — 캐릭터를 눌러 호흡을 진행하는 방식
+  meditationMinutes: 1, // 명상 시간 (분) — 캐릭터를 꾹 눌러 호흡을 진행하는 방식
 };
 
 function quotesList() {
@@ -163,7 +163,7 @@ function findClientRect() {
 function ensureBlockerWindow() {
   if (blockerWin && !blockerWin.isDestroyed()) return;
   blockerWin = new BrowserWindow({
-    width: 380, height: 320,
+    width: 380, height: 260,
     transparent: true, frame: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
@@ -194,7 +194,7 @@ async function updateBlocker() {
   }
 
   ensureBlockerWindow();
-  const bw = 380, bh = 320;
+  const bw = 380, bh = 260;
   // "게임 찾기" 버튼 = 로비 화면 하단 중앙. 그 위에 얹는다.
   const bx = Math.round(rect.x + rect.w / 2 - bw / 2);
   const by = Math.round(rect.y + rect.h - bh - 16);

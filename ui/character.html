@@ -204,7 +204,7 @@
   <div id="bubble"></div>
   <div id="buttons">
     <button id="btn-snooze">15분 쉴게</button>
-    <button id="btn-force">그래도 할래 (0/3)</button>
+    <button id="btn-med">🧘 명상할래</button>
     <button id="btn-stop-med" style="display:none">명상 그만</button>
   </div>
   <div id="char">
@@ -458,15 +458,14 @@
   const char = document.getElementById('char');
   const bubble = document.getElementById('bubble');
   const buttons = document.getElementById('buttons');
-  const btnForce = document.getElementById('btn-force');
+  const btnMed = document.getElementById('btn-med');
   const statusEl = document.getElementById('status');
   const statsChip = document.getElementById('stats-chip');
   const eyesG = document.getElementById('eyes');
 
   const charaG = document.getElementById('chara');
   const imugiG = document.getElementById('imugi');
-  let forceClicks = 0;
-  let forcedThrough = false; // "그래도 할래" 3번 뚫은 상태 (이번 매칭 동안 유지)
+  let forcedThrough = false; // (블로커의 '알겠어'는 main이 관리 — 캐릭터 잔소리는 계속됨)
   let meditating = false;    // 명상 중엔 다른 상태 갱신을 잠시 무시
   let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null }, orbs: 0 };
   let pokeTimer = null;
@@ -581,8 +580,6 @@
     setLine(line);
 
     if (showButtons) {
-      forceClicks = 0;
-      btnForce.textContent = '그래도 할래 (0/3)';
       buttons.classList.add('show');
     } else {
       buttons.classList.remove('show');
@@ -621,7 +618,7 @@
     for (const g of [charaG, imugiG]) { g.style.animation = ''; g.style.transition = ''; g.style.transform = ''; }
   }
   function medUI(on) {
-    btnForce.style.display = on ? 'none' : '';
+    btnMed.style.display = on ? 'none' : '';
     document.getElementById('btn-snooze').style.display = on ? 'none' : '';
     document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
     buttons.classList.toggle('show', on);
@@ -852,20 +849,9 @@
     window.tracker.snooze(15);
   });
 
-  // "그래도 할래" 마찰 장치: 3번 눌러야 캐릭터가 비켜줌 (핸드오프 문서 6-3 '강' 단계)
-  btnForce.addEventListener('click', () => {
-    forceClicks++;
-    if (forceClicks >= 3) {
-      forcedThrough = true;
-      buttons.classList.remove('show');
-      applyMode('small-mode');
-      setLine('...가라. 대신 이번 판 지면 나랑 얘기 좀 해.');
-    } else {
-      btnForce.textContent = `그래도 할래 (${forceClicks}/3)`;
-      setLine(forceClicks === 1
-        ? '진심이야? 한 번 더 생각해.'
-        : '연패 중엔 실력보다 멘탈이 판을 져. 내가 겪어봐서 알아.');
-    }
+  // 개입 순간의 명상 제안: 틸트 한복판이 명상이 제일 필요한 순간
+  btnMed.addEventListener('click', () => {
+    window.tracker.openMeditation();
   });
 
   // 여의주 획득(마일스톤 돌파) 연출: 연속 7/14/28일 달성
@@ -904,6 +890,7 @@
     if (meditating) return;
     applyMode('angry-mode');
     setLine(`방금 그 판, <b>${minute}분에 +${lead.toLocaleString()} 골드</b>까지 앞섰다가 뒤집혔어.<br>'거의 이겼는데'가 맴돌지? 그 생각이 도박장이 제일 좋아하는 미끼야. 다음 큐 전에 한 번만 쉬자.`);
+    buttons.classList.add('show'); // 가장 취약한 순간: 쉬기/명상 제안
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 15000);
   });
