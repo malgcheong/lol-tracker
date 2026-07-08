@@ -118,12 +118,14 @@
 
   /* ---- 표정 전환 (기본: 방긋) ---- */
   .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
-  /* 끌려갈 때: >< 눈 + 입 없음 (어떤 표정 상태보다 우선) */
+  /* 끌려갈 때: >< 눈 + 물결 입 (어떤 표정 상태보다 우선) */
   #char.drag-face .f-eyes-open, #char.drag-face .f-eyes-happy, #char.drag-face .f-eyes-sleep,
   #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes,
-  #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o, #char.drag-face .f-mouth-wave,
+  #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o,
   #char.drag-face .f-mouth-tiny, #char.drag-face .im-mouth { display: none !important; }
-  #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze { display: block !important; }
+  #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze,
+  #char.drag-face .f-mouth-wave, #char.drag-face .im-mouth-wave { display: block !important; }
+  .im-mouth-wave { display: none; }
   /* 깜빡임 */
   #char.blink .f-eyes-open { display: none; }
   #char.blink .f-eyes-sleep { display: block; }
@@ -399,6 +401,8 @@
               <path d="M90 88 Q100 97 110 88" fill="none" stroke="#241b38" stroke-width="3.5" stroke-linecap="round"/>
               <path d="M94 90 l2.5 7 2.5 -6 Z" fill="#fff"/>
             </g>
+            <path class="im-mouth-wave" d="M89 90 q5.5 -6 11 0 q5.5 6 11 0"
+                  fill="none" stroke="#241b38" stroke-width="3.5" stroke-linecap="round"/>
           </g>
 
           <!-- 손: 턱 밑에서 몸을 짚은 짜리 앞발 두 개 (복싱 땐 글러브로 교체) -->
