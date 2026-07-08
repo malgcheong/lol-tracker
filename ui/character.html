@@ -546,16 +546,19 @@
       .find((m) => char.classList.contains(m)) || 'sleep-mode';
   }
 
-  // ---- 명상: 캐릭터를 톡 눌러야 호흡이 하나씩 진행 (자리 뜨면 안 흘러감 = 딴짓 방지) ----
+  // ---- 명상: 캐릭터를 "꾹 누르고 있는 동안만" 호흡이 흘러감 (손 떼면 즉시 멈춤 = 딴짓 원천 차단) ----
   const MED_PHASES = [
     { label: '들이쉬어...', ms: 4000, scale: 1.14 },
     { label: '잠깐 멈춰', ms: 4000, scale: 1.14 },
     { label: '천천히 내쉬어...', ms: 6000, scale: 0.92 },
   ];
-  const CYCLE_MS = MED_PHASES.reduce((s, p) => s + p.ms, 0);
-  let medTotal = 0, medDone = 0, medCycleRunning = false;
+  let medRemain = 0, medPhaseIdx = 0, medPhaseLeft = 0, medHolding = false, medTimer = null, medShownSec = -1;
   const activeBody = () => (char.classList.contains('e2') ? imugiG : charaG);
 
+  function mmss(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+  }
   function medBreathe(scale, ms) {
     const g = activeBody();
     g.style.animation = 'none'; // 평소 둥둥 애니메이션 잠시 끄고 호흡 스케일만
@@ -573,48 +576,73 @@
   }
   function startMeditation(minutes) {
     meditating = true;
-    medTotal = Math.max(1, Math.round((minutes * 60 * 1000) / CYCLE_MS));
-    medDone = 0;
-    medCycleRunning = false;
+    medRemain = minutes * 60 * 1000;
+    medPhaseIdx = 0;
+    medPhaseLeft = MED_PHASES[0].ms;
+    medHolding = false;
+    medShownSec = -1;
     applyModeRaw('sleep-mode'); // 눈 감은 얼굴
     medUI(true);
-    setLine(`명상 ${minutes}분 — 나를 <b>톡</b> 누를 때마다 호흡 한 번이야. 준비되면 눌러. (0/${medTotal})`);
+    setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 준비되면 눌러서 유지해.`);
   }
-  async function medCycle() {
-    medCycleRunning = true;
-    for (const p of MED_PHASES) {
-      setLine(`${p.label} <small>(${medDone + 1}/${medTotal})</small>`);
-      medBreathe(p.scale, p.ms);
-      await new Promise((r) => setTimeout(r, p.ms));
-      if (!meditating) return; // 도중에 그만둠
+  function medPhaseVisual() {
+    medBreathe(MED_PHASES[medPhaseIdx].scale, Math.max(300, medPhaseLeft));
+  }
+  function medHoldStart() {
+    if (!meditating || medHolding) return;
+    medHolding = true;
+    medPhaseVisual();
+    if (!medTimer) {
+      medTimer = setInterval(() => {
+        if (!medHolding) return;
+        medRemain -= 100;
+        medPhaseLeft -= 100;
+        if (medPhaseLeft <= 0) {
+          medPhaseIdx = (medPhaseIdx + 1) % MED_PHASES.length;
+          medPhaseLeft = MED_PHASES[medPhaseIdx].ms;
+          medPhaseVisual();
+          medShownSec = -1;
+        }
+        const sec = Math.ceil(medRemain / 1000);
+        if (sec !== medShownSec) {
+          medShownSec = sec;
+          setLine(`${MED_PHASES[medPhaseIdx].label} <small>${mmss(medRemain)} 남음</small>`);
+        }
+        if (medRemain <= 0) finishMeditation();
+      }, 100);
     }
-    medDone++;
-    medCycleRunning = false;
-    if (medDone >= medTotal) {
-      finishMeditation();
-    } else {
-      medBreathe(1, 1500);
-      setLine(`좋아. 다음 호흡, 준비되면 또 톡. (${medDone}/${medTotal})`);
-    }
+  }
+  function medHoldEnd() {
+    if (!meditating || !medHolding) return;
+    medHolding = false;
+    medBreathe(1, 800);
+    setLine(`손 뗐네. 다시 <b>꾹</b> 누르면 이어져. <small>${mmss(medRemain)} 남음</small>`);
   }
   function finishMeditation() {
+    clearInterval(medTimer); medTimer = null;
+    medHolding = false;
     meditating = false;
     medRestoreBody();
     medUI(false);
     window.tracker.meditationDone();
     applyMode('happy-mode');
-    setLine(`명상 끝! <b>${medTotal}번의 호흡</b>, 전부 네 손으로 했어. 그 차분함이 진짜야.`);
+    setLine('명상 끝! 끝까지 <b>손을 얹은 채로</b> 해냈어. 그 차분함이 진짜야.');
     for (let i = 0; i < 4; i++) setTimeout(() => spawnSpark(70 + Math.random() * 60, 50 + Math.random() * 60), i * 200);
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 7000);
   }
   function cancelMeditation() {
+    clearInterval(medTimer); medTimer = null;
+    medHolding = false;
     meditating = false;
     medRestoreBody();
     medUI(false);
     render(lastState);
   }
   document.getElementById('btn-stop-med').addEventListener('click', cancelMeditation);
+  char.addEventListener('mousedown', medHoldStart);
+  char.addEventListener('mouseleave', medHoldEnd); // 누른 채 캐릭터 밖으로 나가도 멈춤
+  window.addEventListener('mouseup', medHoldEnd);
   window.tracker.onMeditateStart(startMeditation);
 
   // applyMode는 meditating 중에도 얼굴만 바꿀 수 있게 내부용 분리
@@ -626,10 +654,7 @@
 
   // ---- 인터랙션: 찌르기/쓰다듬기 ----
   char.addEventListener('click', (e) => {
-    if (meditating) {
-      if (!medCycleRunning) medCycle(); // 톡 = 호흡 한 번
-      return;
-    }
+    if (meditating) return; // 명상 중 클릭은 호흡 유지용 (mousedown/up이 처리)
     const mode = currentMode();
     const angry = mode === 'angry-mode';
     const sleeping = mode === 'sleep-mode';
