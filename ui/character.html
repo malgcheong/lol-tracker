@@ -117,7 +117,11 @@
   @keyframes wsway { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-4deg)} }
 
   /* ---- 표정 전환 (기본: 방긋) ---- */
-  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
+  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
+  /* 끌려갈 때: >< 눈 (어떤 표정 상태보다 우선) */
+  #char.drag-face .f-eyes-open, #char.drag-face .f-eyes-happy, #char.drag-face .f-eyes-sleep,
+  #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes { display: none !important; }
+  #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze { display: block !important; }
   /* 깜빡임 */
   #char.blink .f-eyes-open { display: none; }
   #char.blink .f-eyes-sleep { display: block; }
@@ -292,6 +296,10 @@
             <path d="M62 100 Q72 106 82 100" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round"/>
             <path d="M118 100 Q128 106 138 100" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round"/>
           </g>
+          <g class="f-eyes-squeeze"><!-- 끌려갈 때 >< -->
+            <path d="M61 92 L79 100 L61 108" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M139 92 L121 100 L139 108" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
         </g>
 
         <!-- 입 -->
@@ -372,9 +380,15 @@
             <path class="im-whisker-r" d="M142 78 C 152 80, 158 78, 162 73" fill="none" stroke="#c9a227" stroke-width="3" stroke-linecap="round"/>
 
             <!-- 눈 -->
-            <circle cx="82" cy="68" r="11.5" fill="#241b38"/><circle cx="118" cy="68" r="11.5" fill="#241b38"/>
-            <circle cx="78" cy="64" r="4" fill="#fff"/><circle cx="114" cy="64" r="4" fill="#fff"/>
-            <circle cx="86" cy="73" r="2" fill="#fff" opacity=".9"/><circle cx="122" cy="73" r="2" fill="#fff" opacity=".9"/>
+            <g class="im-eyes">
+              <circle cx="82" cy="68" r="11.5" fill="#241b38"/><circle cx="118" cy="68" r="11.5" fill="#241b38"/>
+              <circle cx="78" cy="64" r="4" fill="#fff"/><circle cx="114" cy="64" r="4" fill="#fff"/>
+              <circle cx="86" cy="73" r="2" fill="#fff" opacity=".9"/><circle cx="122" cy="73" r="2" fill="#fff" opacity=".9"/>
+            </g>
+            <g class="im-squeeze"><!-- 끌려갈 때 >< -->
+              <path d="M73 60 L90 68 L73 76" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M127 60 L110 68 L127 76" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
             <!-- 볼 -->
             <ellipse cx="62" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
             <ellipse cx="138" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
@@ -554,6 +568,7 @@
     char.className = '';
     char.classList.add(mode);
     if (tierClass) char.classList.add(tierClass); // 성장 단계는 어떤 상태에서도 유지
+    if (didDrag && pressing) char.classList.add('drag-face'); // 끌리는 중이면 >< 유지
   }
   function setLine(line) {
     if (line) { bubble.innerHTML = line; bubble.classList.add('show'); }
@@ -670,7 +685,7 @@
     const dx = e.movementX, dy = e.movementY;
     if (!dx && !dy) return;
     dragAccum += Math.abs(dx) + Math.abs(dy);
-    if (dragAccum > 6) didDrag = true; // 살짝 흔들린 건 클릭으로 침
+    if (dragAccum > 6 && !didDrag) { didDrag = true; char.classList.add('drag-face'); } // 끌리기 시작 → >< 눈
     window.tracker.moveBy(dx, dy); // 창이 마우스를 따라옴
     // 끌리는 방향으로 기우뚱
     const tilt = Math.max(-14, Math.min(14, dx * 1.5));
@@ -687,6 +702,7 @@
     if (!pressing) return;
     pressing = false;
     medHoldEnd(); // 명상 중이면 일시정지
+    char.classList.remove('drag-face'); // >< 해제
     char.style.transition = 'transform .3s';
     char.style.transform = '';
     if (didDrag) {
