@@ -117,12 +117,23 @@
   @keyframes wsway { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-4deg)} }
 
   /* ---- 표정 전환 (기본: 방긋) ---- */
-  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze, .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, #badge { display: none; }
+  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze,
+  .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, .f-mouth-blow, .im-sleep, .im-mouth-blow, #badge { display: none; }
+
+  /* 명상 호흡 표정: 들숨=눈 뜸 / 멈춤=눈 감음 / 날숨=눈 감고 후~ 입 (drag-face가 이보다 우선) */
+  #char.med-in .f-eyes-sleep { display: none !important; }
+  #char.med-in .f-eyes-open { display: block !important; }
+  #char.med-out .f-mouth-tiny { display: none !important; }
+  #char.med-out .f-mouth-blow { display: block !important; }
+  #char.med-hold .im-eyes, #char.med-out .im-eyes { display: none !important; }
+  #char.med-hold .im-sleep, #char.med-out .im-sleep { display: block !important; }
+  #char.med-out .im-mouth { display: none !important; }
+  #char.med-out .im-mouth-blow { display: block !important; }
   /* 끌려갈 때: >< 눈 + 물결 입 (어떤 표정 상태보다 우선) */
   #char.drag-face .f-eyes-open, #char.drag-face .f-eyes-happy, #char.drag-face .f-eyes-sleep,
-  #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes,
-  #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o,
-  #char.drag-face .f-mouth-tiny, #char.drag-face .im-mouth { display: none !important; }
+  #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes, #char.drag-face .im-sleep,
+  #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o, #char.drag-face .f-mouth-blow,
+  #char.drag-face .f-mouth-tiny, #char.drag-face .im-mouth, #char.drag-face .im-mouth-blow { display: none !important; }
   #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze,
   #char.drag-face .f-mouth-wave, #char.drag-face .im-mouth-wave { display: block !important; }
   .im-mouth-wave { display: none; }
@@ -322,6 +333,7 @@
           <g class="f-mouth-tiny">
             <path d="M93 135 Q100 141 107 135" stroke="#241b38" stroke-width="4" fill="none" stroke-linecap="round"/>
           </g>
+          <ellipse class="f-mouth-blow" cx="100" cy="136" rx="6" ry="7.5" fill="#6d3350" stroke="#4a2140" stroke-width="2"/><!-- 날숨 후~ -->
         </g>
 
         <!-- 몽실이(e1)가 두 발로 안은 여의주 (배 아래쪽, 입 아래) -->
@@ -393,6 +405,11 @@
               <path d="M73 60 L90 68 L73 76" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
               <path d="M127 60 L110 68 L127 76" stroke="#241b38" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             </g>
+            <g class="im-sleep"><!-- 명상 눈 감음 -->
+              <path d="M72 68 Q82 74 92 68" stroke="#241b38" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <path d="M108 68 Q118 74 128 68" stroke="#241b38" stroke-width="4" fill="none" stroke-linecap="round"/>
+            </g>
+            <ellipse class="im-mouth-blow" cx="100" cy="91" rx="5" ry="6" fill="#5a3d63" stroke="#241b38" stroke-width="2"/><!-- 날숨 후~ -->
             <!-- 볼 -->
             <ellipse cx="62" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
             <ellipse cx="138" cy="84" rx="8" ry="5" fill="#f2a9c4" opacity=".85"/>
@@ -589,9 +606,9 @@
 
   // ---- 명상: 캐릭터를 "꾹 누르고 있는 동안만" 호흡이 흘러감 (손 떼면 즉시 멈춤 = 딴짓 원천 차단) ----
   const MED_PHASES = [
-    { label: '들이쉬어...', ms: 4000, scale: 1.14 },
-    { label: '잠깐 멈춰', ms: 4000, scale: 1.14 },
-    { label: '천천히 내쉬어...', ms: 6000, scale: 0.92 },
+    { key: 'in', label: '들이쉬어...', ms: 4000 },
+    { key: 'hold', label: '잠깐 멈춰', ms: 4000 },
+    { key: 'out', label: '천천히 후- 내쉬어...', ms: 6000 },
   ];
   let medRemain = 0, medPhaseIdx = 0, medPhaseLeft = 0, medHolding = false, medTimer = null, medShownSec = -1;
   const activeBody = () => (char.classList.contains('e2') ? imugiG : charaG);
@@ -609,6 +626,13 @@
     document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
     buttons.classList.toggle('show', on);
   }
+  // 호흡 위상별 표정: 들숨=눈 뜸 / 멈춤=눈 감음 / 날숨=눈 감고 후~ 입
+  function medFace() {
+    const k = MED_PHASES[medPhaseIdx].key;
+    char.classList.toggle('med-in', k === 'in');
+    char.classList.toggle('med-hold', k === 'hold');
+    char.classList.toggle('med-out', k === 'out');
+  }
   function startMeditation(minutes) {
     meditating = true;
     medRemain = minutes * 60 * 1000;
@@ -616,7 +640,8 @@
     medPhaseLeft = MED_PHASES[0].ms;
     medHolding = false;
     medShownSec = -1;
-    applyModeRaw('sleep-mode'); // 눈 감은 얼굴
+    applyModeRaw('sleep-mode'); // 기본은 눈 감은 얼굴 (위상이 덮어씀)
+    medFace();
     medUI(true);
     setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 준비되면 눌러서 유지해.`);
   }
@@ -638,6 +663,7 @@
           medPhaseIdx = (medPhaseIdx + 1) % MED_PHASES.length;
           medPhaseLeft = MED_PHASES[medPhaseIdx].ms;
           medShownSec = -1;
+          medFace(); // 위상 바뀔 때 표정도 전환
         }
         const sec = Math.ceil(medRemain / 1000);
         if (sec !== medShownSec) {
@@ -658,6 +684,7 @@
     clearInterval(medTimer); medTimer = null;
     medHolding = false;
     meditating = false;
+    char.classList.remove('med-in', 'med-hold', 'med-out');
     medRestoreBody();
     medUI(false);
     window.tracker.meditationDone();
@@ -671,6 +698,7 @@
     clearInterval(medTimer); medTimer = null;
     medHolding = false;
     meditating = false;
+    char.classList.remove('med-in', 'med-hold', 'med-out');
     medRestoreBody();
     medUI(false);
     render(lastState);
@@ -680,7 +708,7 @@
 
   // ---- 꾹 잡기: 명상 진행 + 잡은 채 움직이면 캐릭터가 딸려옴 ----
   // 창 이동/기울기는 프레임당 1번(rAF)만 적용해서 떨림 없이 부드럽게
-  let pressing = false, didDrag = false, dragAccum = 0;
+  let pressing = false, didDrag = false, dragAccum = 0, lastMoveAt = 0;
   let pendDx = 0, pendDy = 0, tiltCur = 0, tiltTarget = 0, dragRaf = null;
 
   function dragStep() {
@@ -691,6 +719,10 @@
     tiltTarget *= 0.82; // 입력이 멈추면 기울기 목표가 0으로 스르륵
     tiltCur += (tiltTarget - tiltCur) * 0.25; // 부드럽게 따라가는 기우뚱
     char.style.transform = `rotate(${tiltCur.toFixed(2)}deg)`;
+    // 잡은 채 가만히 있으면 >< 해제 → 명상 얼굴/원래 얼굴로 복귀
+    if (didDrag && Date.now() - lastMoveAt > 300 && Math.abs(tiltCur) < 0.6) {
+      char.classList.remove('drag-face');
+    }
     if (pressing) {
       dragRaf = requestAnimationFrame(dragStep);
     } else {
@@ -715,11 +747,12 @@
     dragAccum += Math.abs(dx) + Math.abs(dy);
     if (dragAccum > 6 && !didDrag) {
       didDrag = true;
-      char.classList.add('drag-face'); // >< 눈 + 입 없음
-      char.style.transition = 'none';  // 드래그 중엔 transition 없이 rAF가 직접 제어
+      char.style.transition = 'none'; // 드래그 중엔 transition 없이 rAF가 직접 제어
       if (!dragRaf) dragRaf = requestAnimationFrame(dragStep);
     }
     if (didDrag) {
+      lastMoveAt = Date.now();
+      char.classList.add('drag-face'); // 움직이는 동안 >< + 물결 입
       pendDx += dx; pendDy += dy; // 프레임에서 한 번에 이동
       tiltTarget = Math.max(-14, Math.min(14, tiltTarget + dx * 0.6));
     }
