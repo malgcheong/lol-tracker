@@ -31,7 +31,7 @@ contextBridge.exposeInMainWorld('tracker', {
   // 설정 화면
   openMeditation: () => ipcRenderer.send('open-meditation'),
   meditationDone: () => ipcRenderer.send('meditation-done'),
-  onMeditationDone: (cb) => ipcRenderer.on('meditation-done', () => cb()),
+  onMeditateStart: (cb) => ipcRenderer.on('meditate-start', (_e, min) => cb(min)),
 
   getTasks: () => ipcRenderer.invoke('tasks-get'),
   setTasks: (items) => ipcRenderer.invoke('tasks-set', items),

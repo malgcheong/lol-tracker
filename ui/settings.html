@@ -79,6 +79,10 @@
   <input id="defaultTasks" placeholder="빨래, 청소, 침대 정리, 샤워, 운동">
   <div class="hint">쉼표로 구분. 매일 새 하루가 시작되면 "오늘 할 일"에 자동 등록됩니다. 비우면 자동 등록 없음.</div>
 
+  <label>명상 시간 (분)</label>
+  <input id="meditationMinutes" type="number" min="1" max="30">
+  <div class="hint">트레이나 블로커에서 명상을 시작하면, 캐릭터를 <b>톡 누를 때마다</b> 호흡이 하나씩 진행됩니다. 자리를 뜨면 안 흘러가요.</div>
+
   <label>내가 적어두는 명언/다짐 (한 줄에 하나)</label>
   <textarea id="quotes" rows="4" placeholder="예)&#10;진 거 복구하려는 큐는 도박이다&#10;새벽 롤은 지뢰밭&#10;게임은 보상, 순서를 지키자"></textarea>
   <div class="hint">몽뿔이가 가끔 혼잣말로 읊고, 큐를 막을 때 "네가 적어둔 말"로 보여줍니다.</div>
@@ -116,7 +120,7 @@
 
 <script>
   const $ = (id) => document.getElementById(id);
-  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour', 'deepseekKey', 'defaultTasks', 'quotes'];
+  const fields = ['riotId', 'apiKey', 'dailyLimit', 'lossStreakLimit', 'dayResetHour', 'nightStartHour', 'deepseekKey', 'defaultTasks', 'quotes', 'meditationMinutes'];
 
   function readForm() {
     return {
@@ -131,6 +135,7 @@
       deepseekKey: $('deepseekKey').value.trim(),
       defaultTasks: $('defaultTasks').value.trim(),
       quotes: $('quotes').value.trim(),
+      meditationMinutes: Number($('meditationMinutes').value) || 3,
     };
   }
 

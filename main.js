@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS = {
   deepseekKey: '',   // DeepSeek API 키 (선택): 넣으면 게임 끝날 때마다 AI가 판 피드백 한마디 (게임당 1콜)
   defaultTasks: '빨래, 청소, 침대 정리, 샤워, 운동', // 매일 자동 등록되는 기본 할 일 (쉼표 구분, 비우면 없음)
   quotes: '',        // 내가 적어둔 명언/다짐 (줄바꿈 구분): 캐릭터 혼잣말 + 블로커에 표시
+  meditationMinutes: 3, // 명상 시간 (분) — 캐릭터를 눌러 호흡을 진행하는 방식
 };
 
 function quotesList() {
@@ -352,11 +353,11 @@ function openTasksWindow() {
   tasksWin.on('closed', () => { tasksWin = null; });
 }
 
-let meditateWin = null;
-function openMeditateWindow() {
-  if (meditateWin && !meditateWin.isDestroyed()) { meditateWin.focus(); return; }
-  meditateWin = createGlassWindow(340, 480, 'meditate.html');
-  meditateWin.on('closed', () => { meditateWin = null; });
+// 명상: 별도 창 없이 상주 캐릭터가 직접 진행 (캐릭터를 톡 눌러야 호흡이 하나씩 — 딴짓 방지)
+function startMeditation() {
+  if (characterWin && !characterWin.isDestroyed()) {
+    characterWin.webContents.send('meditate-start', settings.meditationMinutes || 3);
+  }
 }
 
 let reportWin = null;
@@ -377,7 +378,7 @@ function createTray() {
   tray.setToolTip('롤 트래커');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '오늘 할 일', click: openTasksWindow },
-    { label: '명상하기', click: openMeditateWindow },
+    { label: '명상하기', click: startMeditation },
     { label: '설정', click: openSettingsWindow },
     { label: '주간 리포트', click: openReportWindow },
     { label: '통계 새로고침', click: () => refreshStats('수동') },
@@ -493,8 +494,8 @@ ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
 });
 
 // 명상
-ipcMain.on('open-meditation', openMeditateWindow);
-ipcMain.on('meditation-done', () => broadcast('meditation-done'));
+ipcMain.on('open-meditation', startMeditation);
+ipcMain.on('meditation-done', () => console.log('[meditation] 완료'));
 
 // 오늘의 할 일
 ipcMain.handle('tasks-get', () => todayTasks());

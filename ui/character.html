@@ -168,6 +168,7 @@
   <div id="buttons">
     <button id="btn-snooze">15분 쉴게</button>
     <button id="btn-force">그래도 할래 (0/3)</button>
+    <button id="btn-stop-med" style="display:none">명상 그만</button>
   </div>
   <div id="char">
     <svg width="200" height="215" viewBox="0 0 200 215">
@@ -405,8 +406,11 @@
   const statsChip = document.getElementById('stats-chip');
   const eyesG = document.getElementById('eyes');
 
+  const charaG = document.getElementById('chara');
+  const imugiG = document.getElementById('imugi');
   let forceClicks = 0;
   let forcedThrough = false; // "그래도 할래" 3번 뚫은 상태 (이번 매칭 동안 유지)
+  let meditating = false;    // 명상 중엔 다른 상태 갱신을 잠시 무시
   let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null }, orbs: 0 };
   let pokeTimer = null;
   let tierClass = null; // 여의주 성장 단계 (e1/e2/e3)
@@ -443,6 +447,7 @@
   // ---- 상태 렌더링 ----
   function render(state) {
     lastState = state;
+    if (meditating) return; // 명상 중엔 화면 갱신 보류 (끝나면 lastState로 복귀)
     clearTimeout(pokeTimer);
     const { phase, verdict } = state;
     const bad = verdict.violations.length > 0;
@@ -541,8 +546,90 @@
       .find((m) => char.classList.contains(m)) || 'sleep-mode';
   }
 
+  // ---- 명상: 캐릭터를 톡 눌러야 호흡이 하나씩 진행 (자리 뜨면 안 흘러감 = 딴짓 방지) ----
+  const MED_PHASES = [
+    { label: '들이쉬어...', ms: 4000, scale: 1.14 },
+    { label: '잠깐 멈춰', ms: 4000, scale: 1.14 },
+    { label: '천천히 내쉬어...', ms: 6000, scale: 0.92 },
+  ];
+  const CYCLE_MS = MED_PHASES.reduce((s, p) => s + p.ms, 0);
+  let medTotal = 0, medDone = 0, medCycleRunning = false;
+  const activeBody = () => (char.classList.contains('e2') ? imugiG : charaG);
+
+  function medBreathe(scale, ms) {
+    const g = activeBody();
+    g.style.animation = 'none'; // 평소 둥둥 애니메이션 잠시 끄고 호흡 스케일만
+    g.style.transition = `transform ${ms / 1000}s ease-in-out`;
+    g.style.transform = `scale(${scale})`;
+  }
+  function medRestoreBody() {
+    for (const g of [charaG, imugiG]) { g.style.animation = ''; g.style.transition = ''; g.style.transform = ''; }
+  }
+  function medUI(on) {
+    btnForce.style.display = on ? 'none' : '';
+    document.getElementById('btn-snooze').style.display = on ? 'none' : '';
+    document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
+    buttons.classList.toggle('show', on);
+  }
+  function startMeditation(minutes) {
+    meditating = true;
+    medTotal = Math.max(1, Math.round((minutes * 60 * 1000) / CYCLE_MS));
+    medDone = 0;
+    medCycleRunning = false;
+    applyModeRaw('sleep-mode'); // 눈 감은 얼굴
+    medUI(true);
+    setLine(`명상 ${minutes}분 — 나를 <b>톡</b> 누를 때마다 호흡 한 번이야. 준비되면 눌러. (0/${medTotal})`);
+  }
+  async function medCycle() {
+    medCycleRunning = true;
+    for (const p of MED_PHASES) {
+      setLine(`${p.label} <small>(${medDone + 1}/${medTotal})</small>`);
+      medBreathe(p.scale, p.ms);
+      await new Promise((r) => setTimeout(r, p.ms));
+      if (!meditating) return; // 도중에 그만둠
+    }
+    medDone++;
+    medCycleRunning = false;
+    if (medDone >= medTotal) {
+      finishMeditation();
+    } else {
+      medBreathe(1, 1500);
+      setLine(`좋아. 다음 호흡, 준비되면 또 톡. (${medDone}/${medTotal})`);
+    }
+  }
+  function finishMeditation() {
+    meditating = false;
+    medRestoreBody();
+    medUI(false);
+    window.tracker.meditationDone();
+    applyMode('happy-mode');
+    setLine(`명상 끝! <b>${medTotal}번의 호흡</b>, 전부 네 손으로 했어. 그 차분함이 진짜야.`);
+    for (let i = 0; i < 4; i++) setTimeout(() => spawnSpark(70 + Math.random() * 60, 50 + Math.random() * 60), i * 200);
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 7000);
+  }
+  function cancelMeditation() {
+    meditating = false;
+    medRestoreBody();
+    medUI(false);
+    render(lastState);
+  }
+  document.getElementById('btn-stop-med').addEventListener('click', cancelMeditation);
+  window.tracker.onMeditateStart(startMeditation);
+
+  // applyMode는 meditating 중에도 얼굴만 바꿀 수 있게 내부용 분리
+  function applyModeRaw(mode) {
+    char.className = '';
+    char.classList.add(mode);
+    if (tierClass) char.classList.add(tierClass);
+  }
+
   // ---- 인터랙션: 찌르기/쓰다듬기 ----
   char.addEventListener('click', (e) => {
+    if (meditating) {
+      if (!medCycleRunning) medCycle(); // 톡 = 호흡 한 번
+      return;
+    }
     const mode = currentMode();
     const angry = mode === 'angry-mode';
     const sleeping = mode === 'sleep-mode';
@@ -609,15 +696,6 @@
     }, 45000 + Math.random() * 45000);
   })();
 
-  // 명상 끝: 칭찬
-  window.tracker.onMeditationDone(() => {
-    applyMode('happy-mode');
-    setLine('명상 끝! 그 차분함, 큐 몇 판보다 귀한 거야. 잘했어.');
-    spawnSpark(80 + Math.random() * 40, 60);
-    clearTimeout(pokeTimer);
-    pokeTimer = setTimeout(() => render(lastState), 6000);
-  });
-
   // ---- 버튼 ----
   document.getElementById('btn-snooze').addEventListener('click', () => {
     window.tracker.snooze(15);
@@ -641,6 +719,7 @@
 
   // 여의주 획득(마일스톤 돌파) 연출: 연속 7/14/28일 달성
   window.tracker.onOrbEarned(({ orbs, streak }) => {
+    if (meditating) return;
     lastState = { ...lastState, orbs, streak };
     const evolved = tierOf(orbs) !== tierClass;
     tierClass = tierOf(orbs);
@@ -658,6 +737,7 @@
 
   // 하루 지킴 (마일스톤 사이): 다음 여의주까지 남은 날 알려줌
   window.tracker.onDayKept((streak) => {
+    if (meditating) return;
     lastState = { ...lastState, streak };
     orbChip.textContent = `${nameOf(lastState.orbs || 0)} · 연속 ${streak}일 · 여의주 ${lastState.orbs || 0}`;
     const next = streak < 7 ? 7 : streak < 14 ? 14 : streak < 28 ? 28 : null;
@@ -670,6 +750,7 @@
 
   // 역전패(near-miss) 직후: '거의 이겼는데'가 제일 위험한 순간 (핸드오프 6-1)
   window.tracker.onNearMiss(({ lead, minute }) => {
+    if (meditating) return;
     applyMode('angry-mode');
     setLine(`방금 그 판, <b>${minute}분에 +${lead.toLocaleString()} 골드</b>까지 앞섰다가 뒤집혔어.<br>'거의 이겼는데'가 맴돌지? 그 생각이 도박장이 제일 좋아하는 미끼야. 다음 큐 전에 한 번만 쉬자.`);
     clearTimeout(pokeTimer);
@@ -678,6 +759,7 @@
 
   // 할 일 전부 완료: 보상 해금 축하
   window.tracker.onTasksDone((total) => {
+    if (meditating) return;
     applyMode('happy-mode');
     setLine(`오늘 할 일 <b>${total}개</b> 전부 끝!! 이제 진짜 보상 시간이야. 재밌게 해!`);
     for (let i = 0; i < 6; i++) {
@@ -689,6 +771,7 @@
 
   // AI 판 피드백 (DeepSeek 키 있을 때만, 게임당 1콜)
   window.tracker.onGameFeedback(({ text, win }) => {
+    if (meditating) return;
     applyMode(win ? 'happy-mode' : 'think-mode');
     setLine(text);
     clearTimeout(pokeTimer);
@@ -697,6 +780,7 @@
 
   // 실패: 연속 기록 깨짐 → 즉시 퇴화
   window.tracker.onStreakReset(() => {
+    if (meditating) return;
     lastState = { ...lastState, orbs: 0, streak: 0 };
     tierClass = null;
     orbChip.textContent = `${nameOf(0)} · 연속 0일 · 여의주 0`;
