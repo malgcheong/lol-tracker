@@ -29,6 +29,10 @@ contextBridge.exposeInMainWorld('tracker', {
   mockGameFeedback: () => ipcRenderer.send('mock-game-feedback'),
 
   // 설정 화면
+  openMeditation: () => ipcRenderer.send('open-meditation'),
+  meditationDone: () => ipcRenderer.send('meditation-done'),
+  onMeditationDone: (cb) => ipcRenderer.on('meditation-done', () => cb()),
+
   getTasks: () => ipcRenderer.invoke('tasks-get'),
   setTasks: (items) => ipcRenderer.invoke('tasks-set', items),
   onTasksDone: (cb) => ipcRenderer.on('tasks-done', (_e, n) => cb(n)),

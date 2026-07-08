@@ -595,17 +595,28 @@
     eyesG.style.transform = `translate(${Math.cos(angle) * r}px, ${Math.sin(angle) * r}px)`;
   });
 
-  // ---- 가끔 혼잣말 (평화로울 때만) ----
+  // ---- 가끔 혼잣말 (평화로울 때만, 내가 적어둔 명언도 섞어서) ----
   (function idleLoop() {
     setTimeout(() => {
       const mode = currentMode();
       if ((mode === 'sleep-mode' || mode === 'bounce-mode') && !bubble.classList.contains('show')) {
-        setLine(IDLE_LINES[Math.floor(Math.random() * IDLE_LINES.length)]);
-        setTimeout(() => render(lastState), 4000);
+        const quotes = (lastState.quotes || []).map((q) => `"${q}" ...라고 네가 적었잖아.`);
+        const pool = quotes.length && Math.random() < 0.5 ? quotes : IDLE_LINES;
+        setLine(pool[Math.floor(Math.random() * pool.length)]);
+        setTimeout(() => render(lastState), 5000);
       }
       idleLoop();
     }, 45000 + Math.random() * 45000);
   })();
+
+  // 명상 끝: 칭찬
+  window.tracker.onMeditationDone(() => {
+    applyMode('happy-mode');
+    setLine('명상 끝! 그 차분함, 큐 몇 판보다 귀한 거야. 잘했어.');
+    spawnSpark(80 + Math.random() * 40, 60);
+    clearTimeout(pokeTimer);
+    pokeTimer = setTimeout(() => render(lastState), 6000);
+  });
 
   // ---- 버튼 ----
   document.getElementById('btn-snooze').addEventListener('click', () => {

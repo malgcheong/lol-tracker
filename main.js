@@ -24,7 +24,12 @@ const DEFAULT_SETTINGS = {
   nightStartHour: 23,// 심야 시작 시각 (여기부터 dayResetHour까지가 심야)
   deepseekKey: '',   // DeepSeek API 키 (선택): 넣으면 게임 끝날 때마다 AI가 판 피드백 한마디 (게임당 1콜)
   defaultTasks: '빨래, 청소, 침대 정리, 샤워, 운동', // 매일 자동 등록되는 기본 할 일 (쉼표 구분, 비우면 없음)
+  quotes: '',        // 내가 적어둔 명언/다짐 (줄바꿈 구분): 캐릭터 혼잣말 + 블로커에 표시
 };
+
+function quotesList() {
+  return (settings.quotes || '').split('\n').map((s) => s.trim()).filter(Boolean);
+}
 
 let settings = { ...DEFAULT_SETTINGS };
 let firstRun = false;
@@ -157,7 +162,7 @@ function findClientRect() {
 function ensureBlockerWindow() {
   if (blockerWin && !blockerWin.isDestroyed()) return;
   blockerWin = new BrowserWindow({
-    width: 380, height: 250,
+    width: 380, height: 320,
     transparent: true, frame: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, hasShadow: false, show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
@@ -188,13 +193,16 @@ async function updateBlocker() {
   }
 
   ensureBlockerWindow();
-  const bw = 380, bh = 250;
+  const bw = 380, bh = 320;
   // "게임 찾기" 버튼 = 로비 화면 하단 중앙. 그 위에 얹는다.
   const bx = Math.round(rect.x + rect.w / 2 - bw / 2);
   const by = Math.round(rect.y + rect.h - bh - 16);
   console.log(`[blocker] 클라 창 (${rect.x},${rect.y}) ${rect.w}x${rect.h} → 블로커 (${bx},${by}) ${bw}x${bh}`);
   blockerWin.setBounds({ x: bx, y: by, width: bw, height: bh });
   blockerWin.showInactive(); // 포커스는 뺏지 않되 위에 뜸
+  // 차단당하는 순간, 내가 적어둔 다짐을 같이 보여줌 (제일 아픈 잔소리는 내 글씨)
+  const q = quotesList();
+  v.quote = q.length ? q[Math.floor(Math.random() * q.length)] : null;
   blockerWin.webContents.send('block', v);
 }
 
@@ -206,6 +214,7 @@ function pushState() {
     verdict: computeVerdict(),
     orbs: orbsOf(orbState.streak),
     streak: orbState.streak,
+    quotes: quotesList(),
   });
 }
 
@@ -343,6 +352,13 @@ function openTasksWindow() {
   tasksWin.on('closed', () => { tasksWin = null; });
 }
 
+let meditateWin = null;
+function openMeditateWindow() {
+  if (meditateWin && !meditateWin.isDestroyed()) { meditateWin.focus(); return; }
+  meditateWin = createGlassWindow(340, 480, 'meditate.html');
+  meditateWin.on('closed', () => { meditateWin = null; });
+}
+
 let reportWin = null;
 function openReportWindow() {
   if (reportWin && !reportWin.isDestroyed()) { reportWin.focus(); return; }
@@ -361,6 +377,7 @@ function createTray() {
   tray.setToolTip('롤 트래커');
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '오늘 할 일', click: openTasksWindow },
+    { label: '명상하기', click: openMeditateWindow },
     { label: '설정', click: openSettingsWindow },
     { label: '주간 리포트', click: openReportWindow },
     { label: '통계 새로고침', click: () => refreshStats('수동') },
@@ -474,6 +491,10 @@ ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
   orbState.streak = 0;
   broadcast('streak-reset', 0);
 });
+
+// 명상
+ipcMain.on('open-meditation', openMeditateWindow);
+ipcMain.on('meditation-done', () => broadcast('meditation-done'));
 
 // 오늘의 할 일
 ipcMain.handle('tasks-get', () => todayTasks());
