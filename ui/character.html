@@ -203,9 +203,8 @@
 <body>
   <div id="bubble"></div>
   <div id="buttons">
-    <button id="btn-snooze">15분 쉴게</button>
-    <button id="btn-med">🧘 명상할래</button>
-    <button id="btn-ok" style="display:none">알겠어</button>
+    <button id="btn-med">🧘 명상하고 갈래</button>
+    <button id="btn-tasks" style="display:none">할 일 하러 가기</button>
     <button id="btn-stop-med" style="display:none">명상 그만</button>
   </div>
   <div id="char">
@@ -621,8 +620,7 @@
   }
   function medUI(on) {
     btnMed.style.display = on ? 'none' : '';
-    document.getElementById('btn-snooze').style.display = on ? 'none' : '';
-    document.getElementById('btn-ok').style.display = 'none';
+    document.getElementById('btn-tasks').style.display = 'none';
     document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
     buttons.classList.toggle('show', on);
   }
@@ -688,8 +686,9 @@
     medRestoreBody();
     medUI(false);
     window.tracker.meditationDone();
+    if (gating) window.tracker.forceThrough(); // 명상 끝냈으면 이번엔 통과시켜줌
     applyMode('happy-mode');
-    setLine('명상 끝! 끝까지 <b>손을 얹은 채로</b> 해냈어. 그 차분함이 진짜야.');
+    setLine('명상 끝! 끝까지 <b>손을 얹은 채로</b> 해냈어. 이제 가도 돼 — 진정하고 하는 게임은 다르니까.');
     for (let i = 0; i < 4; i++) setTimeout(() => spawnSpark(70 + Math.random() * 60, 50 + Math.random() * 60), i * 200);
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 7000);
@@ -855,32 +854,31 @@
   })();
 
   // ---- 버튼 ----
-  document.getElementById('btn-snooze').addEventListener('click', () => {
-    window.tracker.snooze(15);
-  });
-
-  // 개입 순간의 명상 제안: 틸트 한복판이 명상이 제일 필요한 순간
+  // 명상하고 가기: 통과하는 유일한 '즉시' 방법 (완료해야 열림)
   btnMed.addEventListener('click', () => {
     window.tracker.openMeditation();
   });
-
-  // 알겠어 = 이번 로비 세션 동안 비켜줌 (main이 캐릭터를 집으로 되돌림)
-  document.getElementById('btn-ok').addEventListener('click', () => {
-    window.tracker.forceThrough();
+  // 할 일 하러 가기: 오늘 할 일 창을 열어줌 (다 끝내면 게이트 자동 해제)
+  document.getElementById('btn-tasks').addEventListener('click', () => {
+    window.tracker.openTasks();
   });
 
   // 캐릭터가 버튼 위로 가서 막는 중 (main이 창 위치를 옮김)
+  // 통과 조건은 둘뿐: ①명상 완료 ②할 일 전부 끝내기 (탈출 버튼 없음)
   window.tracker.onGate((g) => {
     if (meditating) return;
     if (g.blocking) {
       gating = true;
       applyMode('angry-mode');
+      const hasTasks = g.verdict.violations.some((v) => v.type === 'tasks');
       let line = g.verdict.violations.map((v) => violationLine(v, 'Matchmaking')).join('<br>');
+      line += hasTasks
+        ? '<br>할 일을 끝내거나, 나랑 명상하고 가.'
+        : '<br>지금은 못 보내. 나랑 명상 한 번 하고 가.';
       if (g.quote) line += `<br><span style="opacity:.8">"${g.quote}"</span>`;
       setLine(line);
-      document.getElementById('btn-snooze').style.display = '';
       btnMed.style.display = '';
-      document.getElementById('btn-ok').style.display = '';
+      document.getElementById('btn-tasks').style.display = hasTasks ? '' : 'none';
       document.getElementById('btn-stop-med').style.display = 'none';
       buttons.classList.add('show');
     } else if (gating) {

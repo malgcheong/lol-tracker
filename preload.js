@@ -8,7 +8,6 @@ contextBridge.exposeInMainWorld('tracker', {
   onCursor: (cb) => ipcRenderer.on('cursor', (_e, pos) => cb(pos)),
 
   // 캐릭터
-  snooze: (minutes) => ipcRenderer.send('snooze', minutes),
   moveBy: (dx, dy) => ipcRenderer.send('char-move-by', { dx, dy }),
   showMenu: () => ipcRenderer.send('char-menu'),
 
@@ -35,6 +34,7 @@ contextBridge.exposeInMainWorld('tracker', {
   meditationDone: () => ipcRenderer.send('meditation-done'),
   onMeditateStart: (cb) => ipcRenderer.on('meditate-start', (_e, min) => cb(min)),
 
+  openTasks: () => ipcRenderer.send('open-tasks'),
   getTasks: () => ipcRenderer.invoke('tasks-get'),
   setTasks: (items) => ipcRenderer.invoke('tasks-set', items),
   onTasksDone: (cb) => ipcRenderer.on('tasks-done', (_e, n) => cb(n)),

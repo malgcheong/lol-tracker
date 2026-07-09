@@ -93,7 +93,6 @@ const riot = new RiotStats();
 let stats = null;      // { todayCount, lossStreak, fetchedAt } 또는 null(데이터 없음)
 let statsError = null;
 let lastPhase = 'None';
-let snoozeUntil = 0;
 let lastNearMissId = null;  // 타임라인 검사를 이미 한 판 (재검사 방지)
 let nearMissFiredId = null; // 실제로 역전패 경고가 나간 판
 let lastFeedbackId = null;  // AI 피드백이 나간 판 (게임당 1콜 보장)
@@ -182,8 +181,7 @@ async function updateBlocker() {
   const shouldBlock =
     v.violations.length > 0 &&
     ['Lobby', 'Matchmaking'].includes(lastPhase) &&
-    !forcedThroughMain &&
-    Date.now() >= snoozeUntil;
+    !forcedThroughMain;
 
   if (!shouldBlock) {
     returnCharacterHome();
@@ -207,8 +205,7 @@ async function updateBlocker() {
 }
 
 function pushState() {
-  updateBlocker(); // 창 위치/표시 갱신 (스누즈 중이어도 숨김 처리 위해 먼저 호출)
-  if (Date.now() < snoozeUntil) return; // 스누즈 중엔 캐릭터 대사는 조용히
+  updateBlocker(); // 캐릭터가 버튼 막을지/집으로 갈지 갱신
   broadcast('state', {
     phase: lastPhase,
     verdict: computeVerdict(),
@@ -520,6 +517,7 @@ ipcMain.on('open-meditation', startMeditation);
 ipcMain.on('meditation-done', () => console.log('[meditation] 완료'));
 
 // 오늘의 할 일
+ipcMain.on('open-tasks', openTasksWindow);
 ipcMain.handle('tasks-get', () => todayTasks());
 ipcMain.handle('tasks-set', (_e, items) => {
   const t = todayTasks();
@@ -627,15 +625,6 @@ ipcMain.on('char-move-by', (_e, { dx, dy }) => {
   characterWin.setPosition(Math.round(x + dx), Math.round(y + dy));
 });
 
-ipcMain.on('snooze', (_e, minutes) => {
-  snoozeUntil = Date.now() + minutes * 60 * 1000;
-  returnCharacterHome(); // 캐릭터가 버튼에서 비켜줌
-  broadcast('state', { phase: 'Snoozing', verdict: computeVerdict(), orbs: orbsOf(orbState.streak), streak: orbState.streak });
-  setTimeout(() => {
-    snoozeUntil = 0;
-    pushState(); // 스누즈 끝나면 현재 상태 재체크 (아직 로비면 다시 막음)
-  }, minutes * 60 * 1000);
-});
 
 // "알겠어" → 이번 로비 세션 동안 캐릭터가 버튼에서 비켜줌 (다음 세션에 다시 막음)
 ipcMain.on('force-through', () => {
