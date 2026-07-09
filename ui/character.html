@@ -95,6 +95,10 @@
   @keyframes guard { 0%,100%{transform:rotate(-4.5deg)} 50%{transform:rotate(4.5deg)} }
   .door { display: none; }
   #char.guarding .door { display: block; } /* 막을 때만 '롤' 문 등장 */
+
+  /* 명상 자세: 팔을 아래로 차분히 모음 (옆으로 삐죽 X) */
+  #char.med-pose .arm-l { animation: none !important; transform: translate(20px, 22px) rotate(18deg); }
+  #char.med-pose .arm-r { animation: none !important; transform: translate(-20px, 22px) rotate(-18deg); }
   #char.guarding .arm-l { animation: guardArmL 1.3s ease-in-out infinite !important; }
   #char.guarding .arm-r { animation: guardArmR 1.3s ease-in-out infinite !important; }
   /* 양팔 번쩍 들어 "멈춰" — 몸 스웨이에 맞춰 살짝 흔들림 */
@@ -667,6 +671,7 @@
     medHolding = false;
     medShownSec = -1;
     applyModeRaw('sleep-mode'); // 기본은 눈 감은 얼굴 (위상이 덮어씀)
+    char.classList.add('med-pose'); // 팔 차분히 모으기
     medFace();
     medUI(true);
     setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 끝까지 채워야 문이 열려. 준비되면 눌러.`);
