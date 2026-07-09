@@ -3,7 +3,48 @@
 const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { exec } = require('child_process');
+
+// 롤 클라 창 찾기 PowerShell (열린 창 전부 훑어 프로세스명/제목으로 매칭 + 후보 로그)
+const PS_FIND_FILE = path.join(os.tmpdir(), 'loltracker_findwin.ps1');
+let psWritten = false;
+const PS_FIND_SCRIPT = `
+Add-Type @"
+using System;using System.Text;using System.Runtime.InteropServices;
+public class Win{
+ public delegate bool EP(IntPtr h,IntPtr l);
+ [DllImport("user32.dll")]public static extern bool EnumWindows(EP cb,IntPtr l);
+ [DllImport("user32.dll")]public static extern bool IsWindowVisible(IntPtr h);
+ [DllImport("user32.dll")]public static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
+ [DllImport("user32.dll")]public static extern void GetWindowThreadProcessId(IntPtr h,out uint p);
+ [DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out RC r);
+ public struct RC{public int L;public int T;public int R;public int B;}
+}
+"@
+$found=New-Object System.Collections.ArrayList
+$cb=[Win+EP]{
+ param($h,$l)
+ if([Win]::IsWindowVisible($h)){
+  $sb=New-Object System.Text.StringBuilder 256
+  [void][Win]::GetWindowText($h,$sb,256)
+  $procId=0
+  [Win]::GetWindowThreadProcessId($h,[ref]$procId)
+  $pn=""
+  try{$pn=(Get-Process -Id $procId -ErrorAction Stop).ProcessName}catch{}
+  $r=New-Object Win+RC
+  [void][Win]::GetWindowRect($h,[ref]$r)
+  $w=$r.R-$r.L;$hh=$r.B-$r.T
+  if($w -gt 400 -and $hh -gt 300){[void]$found.Add([pscustomobject]@{PN=$pn;T=$sb.ToString();L=$r.L;TP=$r.T;W=$w;H=$hh})}
+ }
+ return $true
+}
+[void][Win]::EnumWindows($cb,[IntPtr]::Zero)
+$m=$found|Where-Object{$_.PN -eq 'LeagueClientUx'}|Select-Object -First 1
+if(-not $m){$m=$found|Where-Object{$_.T -like '*League of Legends*'}|Select-Object -First 1}
+if($m){Write-Output ("HIT|"+$m.L+","+$m.TP+","+$m.W+","+$m.H)}
+$found|ForEach-Object{Write-Output ("CAND|"+$_.PN+" | "+$_.T+" | "+$_.W+"x"+$_.H)}
+`;
 
 app.setName('LoL Tracker'); // 자동 실행 등록 이름 등에 표시
 
@@ -153,23 +194,22 @@ function findClientRect() {
       const { width, height } = screen.getPrimaryDisplay().workAreaSize;
       return resolve({ x: width - 900, y: height - 640, w: 880, h: 600 });
     }
-    // 실제 모드: win32로 "League of Legends" 클라 창의 화면 좌표를 구함
-    const ps = [
-      'Add-Type \'using System;using System.Runtime.InteropServices;',
-      'public class W{[DllImport("user32.dll")]public static extern IntPtr FindWindow(string c,string n);',
-      '[DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out RECT r);',
-      'public struct RECT{public int L,T,R,B;}}\';',
-      '$h=[W]::FindWindow($null,"League of Legends");',
-      '$r=New-Object W+RECT;[void][W]::GetWindowRect($h,[ref]$r);',
-      'Write-Output "$($r.L),$($r.T),$($r.R),$($r.B)"',
-    ].join('');
-    exec(`powershell -NoProfile -Command "${ps.replace(/"/g, '\\"')}"`, (err, stdout) => {
-      if (err) return resolve(null);
-      const m = String(stdout).trim().match(/(-?\d+),(-?\d+),(-?\d+),(-?\d+)/);
+    // 실제 모드: 열린 창을 전부 훑어 롤 클라 창을 찾는다 (제목 정확매칭보다 견고)
+    // 우선순위: LeagueClientUx 프로세스 → 제목에 League of Legends. 못 찾으면 후보 목록을 로그로.
+    try { if (!psWritten) { fs.writeFileSync(PS_FIND_FILE, PS_FIND_SCRIPT); psWritten = true; } } catch {}
+    exec(`powershell -NoProfile -ExecutionPolicy Bypass -File "${PS_FIND_FILE}"`, (err, stdout) => {
+      const lines = String(stdout).split(/\r?\n/);
+      const cands = lines.filter((l) => l.startsWith('CAND|'));
+      const hit = lines.find((l) => l.startsWith('HIT|'));
+      if (err) console.log(`[gate] 창 탐색 오류: ${err.message}`);
+      if (!hit) {
+        console.log('[gate] 롤 클라 창 후보(400x300 이상 보이는 창):');
+        cands.forEach((c) => console.log('   ' + c.slice(5)));
+        return resolve(null);
+      }
+      const m = hit.slice(4).match(/(-?\d+),(-?\d+),(\d+),(\d+)/);
       if (!m) return resolve(null);
-      const [, l, t, r, b] = m.map(Number);
-      if (r - l < 400 || b - t < 300) return resolve(null); // 최소화됐거나 못 찾음
-      resolve({ x: l, y: t, w: r - l, h: b - t });
+      resolve({ x: +m[1], y: +m[2], w: +m[3], h: +m[4] });
     });
   });
 }
