@@ -356,14 +356,15 @@ function createCharacterWindow() {
   characterWin.loadFile(path.join(__dirname, 'ui', 'character.html'));
 }
 
+const BLOCK_W = 560; // 막을 땐 창을 넓혀 버튼 주변 클릭을 전부 삼킴 (좌우로 비켜 눌러도 안 먹히게)
 let charAtButton = false; // 캐릭터가 지금 버튼 위(막는 중)인지
 function moveCharacterToButton(rect) {
   if (!characterWin || characterWin.isDestroyed()) return;
-  // 게임 찾기 버튼 = 로비 하단 중앙. 캐릭터 몸(창 하단 중앙부)이 버튼을 덮도록 창을 얹는다.
-  const bx = Math.round(rect.x + rect.w / 2 - CHAR_W / 2);
+  // 게임 찾기 버튼 = 로비 하단 중앙. 넓은 캐릭터 창(방패)으로 버튼을 덮는다.
+  const bx = Math.round(rect.x + rect.w / 2 - BLOCK_W / 2);
   const by = Math.round(rect.y + rect.h - CHAR_H + 70);
-  console.log(`[gate] 캐릭터를 버튼 위로: 클라(${rect.x},${rect.y} ${rect.w}x${rect.h}) → 캐릭터(${bx},${by})`);
-  characterWin.setBounds({ x: bx, y: by, width: CHAR_W, height: CHAR_H });
+  console.log(`[gate] 버튼 방패: 클라(${rect.x},${rect.y} ${rect.w}x${rect.h}) → 창(${bx},${by} ${BLOCK_W}x${CHAR_H})`);
+  characterWin.setBounds({ x: bx, y: by, width: BLOCK_W, height: CHAR_H });
   if (!characterWin.isVisible()) characterWin.showInactive();
   charAtButton = true;
 }
