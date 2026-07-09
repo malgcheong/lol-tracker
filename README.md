@@ -21,14 +21,23 @@ developer.riotgames.com → 라이엇 계정 로그인 → 첫 화면의 Develop
 개발 키는 **24시간마다 만료**됨 (같은 페이지에서 Regenerate 후 다시 붙여넣기).
 키는 이 폴더의 `settings.json`에만 저장되고 git에는 안 들어감(.gitignore).
 
-## 실행
+## 실행 (개발)
 
 ```
 npm install
 npm start
 ```
 
-mock 모드(기본)에서는 조종판 창이 같이 뜬다. "큐 돌리기 시작!"을 눌러서 캐릭터가 화내는지 확인.
+개발 모드(npm start)는 config.json의 `mode`를 따른다. mock이면 조종판 창이 같이 떠서, 롤 없이 phase/통계를 흉내 낼 수 있다.
+
+## 빌드 (.exe 만들기)
+
+```
+npm run pack
+```
+
+`dist/LoL Tracker-win32-x64/LoL Tracker.exe`가 나온다. **패키징된 exe는 항상 real 모드** (조종판 없음, 실제 롤 클라에 붙음). 더블클릭으로 실행되고, 설정에서 "윈도우 시작 시 자동 실행"을 켜면 부팅 시 트레이 상주.
+(electron-builder의 NSIS 설치본은 winCodeSign 심볼릭 링크 이슈로 관리자 권한이 필요 → 지금은 electron-packager로 무설치 폴더 빌드를 쓴다.)
 
 ## 집에서 진짜 롤로 테스트하기 (체크리스트)
 

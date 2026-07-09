@@ -12,6 +12,8 @@ const { buildWeeklyReport } = require('./stats/report');
 const { generateGameFeedback } = require('./ai/coach');
 
 const config = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8'));
+// 패키징된 앱(.exe)은 항상 real 모드 — mock(가짜 조종판)은 개발용 npm start 전용
+if (app.isPackaged) config.mode = 'real';
 
 // ---- 사용자 설정 (settings.json, 없으면 기본값으로 생성) ----
 const SETTINGS_PATH = path.join(__dirname, 'settings.json');
