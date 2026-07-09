@@ -346,14 +346,14 @@
         </g>
         <!-- 화난 눈+눈썹 (한 세트, 고정 — 커서 추적 안 함) -->
         <g class="f-angry">
-          <!-- 눈썹: 굵고 길게, 안쪽이 눈을 내리누르는 페북 화남 느낌 -->
-          <path d="M50 80 Q68 84 86 102" stroke="#241b38" stroke-width="11" fill="none" stroke-linecap="round"/>
-          <path d="M150 80 Q132 84 114 102" stroke="#241b38" stroke-width="11" fill="none" stroke-linecap="round"/>
-          <!-- 눈: 눈썹 바로 아래서 노려봄 -->
-          <circle cx="80" cy="112" r="11" fill="#241b38"/>
-          <circle cx="120" cy="112" r="11" fill="#241b38"/>
-          <circle cx="76" cy="108" r="3.4" fill="#fff"/>
-          <circle cx="116" cy="108" r="3.4" fill="#fff"/>
+          <!-- 눈썹: 안쪽이 눈을 내리누르는 페북 화남 느낌 (얇게) -->
+          <path d="M52 84 Q70 88 86 100" stroke="#241b38" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <path d="M148 84 Q130 88 114 100" stroke="#241b38" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <!-- 눈: 눈썹 바로 아래서 크게 노려봄 -->
+          <circle cx="78" cy="112" r="15" fill="#241b38"/>
+          <circle cx="122" cy="112" r="15" fill="#241b38"/>
+          <circle cx="73" cy="107" r="5" fill="#fff"/>
+          <circle cx="117" cy="107" r="5" fill="#fff"/>
         </g>
 
         <!-- 입 -->
@@ -848,7 +848,10 @@
   // ---- 눈 깜빡임 ----
   (function blinkLoop() {
     setTimeout(() => {
-      if (currentMode() !== 'sleep-mode') {
+      // 기본(뜬 눈) 상태에서만 깜빡임 — 화남/고민/명상/막기 땐 감은눈이 덧그려지지 않게
+      const m = currentMode();
+      const skip = ['sleep-mode', 'angry-mode', 'think-mode'].includes(m) || meditating || gating;
+      if (!skip) {
         char.classList.add('blink');
         setTimeout(() => char.classList.remove('blink'), 140);
       }
