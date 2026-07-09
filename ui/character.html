@@ -96,9 +96,8 @@
   .door { display: none; }
   #char.guarding .door { display: block; } /* 막을 때만 '롤' 문 등장 */
 
-  /* 명상 자세: 팔을 아래로 차분히 모음 (옆으로 삐죽 X) */
-  #char.med-pose .arm-l { animation: none !important; transform: translate(20px, 22px) rotate(18deg); }
-  #char.med-pose .arm-r { animation: none !important; transform: translate(-20px, 22px) rotate(-18deg); }
+  /* 명상 중엔 팔이 평소 위치 그대로 (흔들림만 없이 가만히) */
+  #char.med-pose .arm-l, #char.med-pose .arm-r { animation: none !important; }
   #char.guarding .arm-l { animation: guardArmL 1.3s ease-in-out infinite !important; }
   #char.guarding .arm-r { animation: guardArmR 1.3s ease-in-out infinite !important; }
   /* 양팔 번쩍 들어 "멈춰" — 몸 스웨이에 맞춰 살짝 흔들림 */
