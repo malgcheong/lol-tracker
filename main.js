@@ -373,10 +373,9 @@ function openSettingsWindow() {
   settingsWin.on('closed', () => { settingsWin = null; });
 }
 
-function createTray() {
-  tray = new Tray(path.join(__dirname, 'assets', 'tray.png'));
-  tray.setToolTip('롤 트래커');
-  tray.setContextMenu(Menu.buildFromTemplate([
+// 트레이와 캐릭터 우클릭이 공유하는 메뉴
+function appMenuTemplate() {
+  return [
     { label: '오늘 할 일', click: openTasksWindow },
     { label: '명상하기', click: startMeditation },
     { label: '설정', click: openSettingsWindow },
@@ -384,7 +383,13 @@ function createTray() {
     { label: '통계 새로고침', click: () => refreshStats('수동') },
     { type: 'separator' },
     { label: '종료', click: () => app.quit() },
-  ]));
+  ];
+}
+
+function createTray() {
+  tray = new Tray(path.join(__dirname, 'assets', 'tray.png'));
+  tray.setToolTip('롤 트래커');
+  tray.setContextMenu(Menu.buildFromTemplate(appMenuTemplate()));
   tray.on('click', openSettingsWindow);
 }
 
@@ -491,6 +496,13 @@ ipcMain.on('mock-day-keep', () => { // 하루 성공 연출
 ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
   orbState.streak = 0;
   broadcast('streak-reset', 0);
+});
+
+// 캐릭터 우클릭 메뉴
+ipcMain.on('char-menu', () => {
+  if (characterWin && !characterWin.isDestroyed()) {
+    Menu.buildFromTemplate(appMenuTemplate()).popup({ window: characterWin });
+  }
 });
 
 // 명상

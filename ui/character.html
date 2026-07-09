@@ -730,11 +730,18 @@
     }
   }
 
-  char.addEventListener('mousedown', () => {
+  char.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return; // 왼클릭만 (우클릭은 메뉴)
     pressing = true;
     didDrag = false;
     dragAccum = 0;
     medHoldStart(); // 명상 중이면 호흡 시작 (아니면 내부에서 무시)
+  });
+
+  // 우클릭: 앱 메뉴 (트레이와 동일)
+  char.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    window.tracker.showMenu();
   });
 
   window.addEventListener('mousemove', (e) => {
