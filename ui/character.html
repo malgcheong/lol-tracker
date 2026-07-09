@@ -93,8 +93,11 @@
   /* 막아서기(guard): 버튼 위에 떡 버티고 "안 돼 안 돼" 천천히 몸 흔들기 + 팔 벌려 막기 */
   #char.guarding #chara, #char.guarding #imugi { animation: guard 1.3s ease-in-out infinite !important; }
   @keyframes guard { 0%,100%{transform:rotate(-4.5deg)} 50%{transform:rotate(4.5deg)} }
-  #char.guarding .arm-l { animation: none !important; transform: rotate(-58deg) translate(-4px,-8px); }
-  #char.guarding .arm-r { animation: none !important; transform: rotate(58deg) translate(4px,-8px); }
+  #char.guarding .arm-l { animation: guardArmL 1.3s ease-in-out infinite !important; }
+  #char.guarding .arm-r { animation: guardArmR 1.3s ease-in-out infinite !important; }
+  /* 양팔 번쩍 들어 "멈춰" — 몸 스웨이에 맞춰 살짝 흔들림 */
+  @keyframes guardArmL { 0%,100%{transform:translate(6px,-30px) rotate(28deg)} 50%{transform:translate(6px,-36px) rotate(20deg)} }
+  @keyframes guardArmR { 0%,100%{transform:translate(-6px,-38px) rotate(-28deg)} 50%{transform:translate(-6px,-44px) rotate(-20deg)} }
 
   /* 반짝이 */
   .spark { animation: twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
