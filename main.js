@@ -325,10 +325,18 @@ function createCharacterWindow() {
     x: width - 380, y: height - 500,
     transparent: true, frame: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, hasShadow: false,
+    show: config.mode === 'mock', // real 모드는 롤 클라 켜질 때만 등장 (mock은 항상 보임)
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   characterWin.setAlwaysOnTop(true, 'screen-saver');
   characterWin.loadFile(path.join(__dirname, 'ui', 'character.html'));
+}
+
+// 롤 클라 유무에 따라 캐릭터를 등장/퇴장 (평소엔 트레이만, 롤 켜면 나타남)
+function setCharacterVisible(visible) {
+  if (!characterWin || characterWin.isDestroyed()) return;
+  if (visible && !characterWin.isVisible()) characterWin.showInactive();
+  else if (!visible && characterWin.isVisible()) characterWin.hide();
 }
 
 function createControlWindow() {
@@ -456,6 +464,7 @@ app.whenReady().then(() => {
     console.log(`[lcu] ${msg}`);
     broadcast('status', msg);
   });
+  lcu.on('client', (present) => setCharacterVisible(present)); // 롤 클라 켜질 때만 캐릭터 등장
 
   characterWin.webContents.once('did-finish-load', () => {
     lcu.start();

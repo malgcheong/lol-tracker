@@ -50,6 +50,7 @@ class RealLcuClient extends EventEmitter {
     const lock = this.readLockfile();
     if (!lock) {
       this.emit('status', '롤 클라이언트 대기 중... (lockfile 없음, 5초 후 재시도)');
+      this.emit('client', false); // 클라 없음 → 캐릭터 숨김
       setTimeout(() => this.tryConnect(), RETRY_MS);
       return;
     }
@@ -65,6 +66,7 @@ class RealLcuClient extends EventEmitter {
 
     ws.on('open', () => {
       this.emit('status', `LCU 연결됨 (포트 ${port})`);
+      this.emit('client', true); // 클라 켜짐 → 캐릭터 등장
       // [5, 이벤트명] = "이 이벤트 구독할게" 라는 LCU WebSocket 약속
       ws.send(JSON.stringify([5, GAMEFLOW_EVENT]));
       this.fetchCurrentPhase(port, auth); // 구독은 '변화'만 알려주니 현재 상태는 한 번 직접 물어봄
@@ -85,6 +87,7 @@ class RealLcuClient extends EventEmitter {
     ws.on('close', () => {
       this.emit('status', 'LCU 연결 끊김 (클라이언트 종료?). 재연결 대기...');
       this.emit('phase', 'None');
+      this.emit('client', false); // 클라 종료 → 캐릭터 숨김
       setTimeout(() => this.tryConnect(), RETRY_MS);
     });
 
