@@ -93,6 +93,8 @@
   /* 막아서기(guard): 버튼 위에 떡 버티고 "안 돼 안 돼" 천천히 몸 흔들기 + 팔 벌려 막기 */
   #char.guarding #chara, #char.guarding #imugi { animation: guard 1.3s ease-in-out infinite !important; }
   @keyframes guard { 0%,100%{transform:rotate(-4.5deg)} 50%{transform:rotate(4.5deg)} }
+  .door { display: none; }
+  #char.guarding .door { display: block; } /* 막을 때만 '롤' 문 등장 */
   #char.guarding .arm-l { animation: guardArmL 1.3s ease-in-out infinite !important; }
   #char.guarding .arm-r { animation: guardArmR 1.3s ease-in-out infinite !important; }
   /* 양팔 번쩍 들어 "멈춰" — 몸 스웨이에 맞춰 살짝 흔들림 */
@@ -259,6 +261,16 @@
         <ellipse cx="103" cy="195" rx="23" ry="5.5" fill="#140e26"/>
       </g>
 
+      <!-- '롤' 문: 막을 때만 등장, 캐릭터가 이 문 앞을 막아섬 -->
+      <g class="door">
+        <rect x="12" y="20" width="176" height="188" rx="18" fill="#5a4a86" stroke="#372a5c" stroke-width="4"/>
+        <rect x="26" y="34" width="148" height="160" rx="10" fill="none" stroke="#372a5c" stroke-width="2.5" opacity=".6"/>
+        <circle cx="170" cy="118" r="5" fill="#f3e3bd" stroke="#372a5c" stroke-width="2"/>
+        <!-- 문패: 롤 -->
+        <rect x="68" y="2" width="64" height="30" rx="8" fill="#f3e3bd" stroke="#372a5c" stroke-width="3"/>
+        <text x="100" y="24" font-size="20" font-weight="bold" fill="#4a3320" text-anchor="middle" font-family="'Malgun Gothic',sans-serif">롤</text>
+      </g>
+
       <g id="chara">
         <!-- 몽글몽글 뿔 (크림색 — 귀 아님!) -->
         <g class="horns">
@@ -280,9 +292,9 @@
                 fill="none" stroke="#8266ad" stroke-width="10" stroke-linecap="round"/>
         </g>
 
-        <!-- 팔: 몸 옆에서 삐죽 (왼쪽은 살짝 들고, 오른쪽은 내리고 — 상태 따라 흔들림) -->
-        <g class="arm-l"><ellipse cx="21" cy="84" rx="11" ry="17" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-38 21 84)"/></g>
-        <g class="arm-r"><ellipse cx="180" cy="114" rx="11" ry="16" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(30 180 114)"/></g>
+        <!-- 팔: 몸 옆에서 삐죽 (길쭉한 팔, 상태 따라 흔들림) -->
+        <g class="arm-l"><ellipse cx="20" cy="92" rx="9" ry="26" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(-42 20 92)"/></g>
+        <g class="arm-r"><ellipse cx="180" cy="112" rx="9" ry="26" fill="#9376c2" stroke="#6b54a0" stroke-width="3" transform="rotate(42 180 112)"/></g>
 
         <!-- 몸: 물방울 실루엣 -->
         <ellipse cx="100" cy="105" rx="74" ry="70" fill="url(#bodyGrad)" stroke="#6b54a0" stroke-width="3.5"/>
