@@ -127,8 +127,8 @@
   @keyframes wsway { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-4deg)} }
 
   /* ---- 표정 전환 (기본: 방긋) ---- */
-  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze,
-  .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, .f-mouth-blow, .im-sleep, .im-mouth-blow, #badge { display: none; }
+  .f-eyes-happy, .f-eyes-shut, .f-eyes-sleep, .f-eyes-squeeze, .im-squeeze, .f-brows,
+  .f-mouth-o, .f-mouth-wave, .f-mouth-tiny, .f-mouth-blow, .f-mouth-angry, .im-sleep, .im-mouth-blow, #badge { display: none; }
 
   /* 명상 호흡 표정: 들숨=눈 뜸 / 멈춤=눈 감음 / 날숨=눈 감고 후~ 입 (drag-face가 이보다 우선) */
   #char.med-in .f-eyes-sleep { display: none !important; }
@@ -143,7 +143,8 @@
   #char.drag-face .f-eyes-open, #char.drag-face .f-eyes-happy, #char.drag-face .f-eyes-sleep,
   #char.drag-face .f-eyes-shut, #char.drag-face .im-eyes, #char.drag-face .im-sleep,
   #char.drag-face .f-mouth-smile, #char.drag-face .f-mouth-o, #char.drag-face .f-mouth-blow,
-  #char.drag-face .f-mouth-tiny, #char.drag-face .im-mouth, #char.drag-face .im-mouth-blow { display: none !important; }
+  #char.drag-face .f-mouth-tiny, #char.drag-face .f-mouth-angry, #char.drag-face .f-brows,
+  #char.drag-face .im-mouth, #char.drag-face .im-mouth-blow { display: none !important; }
   #char.drag-face .f-eyes-squeeze, #char.drag-face .im-squeeze,
   #char.drag-face .f-mouth-wave, #char.drag-face .im-mouth-wave { display: block !important; }
   .im-mouth-wave { display: none; }
@@ -153,10 +154,9 @@
   /* 쓰다듬: 방긋 눈웃음 */
   #char.happy-mode .f-eyes-open { display: none; }
   #char.happy-mode .f-eyes-happy { display: block; }
-  /* 제한 도달(개입): 찡그림 + 물결입 + ! 배지 */
-  #char.angry-mode .f-eyes-open { display: none; }
-  #char.angry-mode .f-eyes-shut, #char.angry-mode .f-mouth-wave, #char.angry-mode #badge { display: block; }
+  /* 제한 도달(개입): 부릅뜬 눈 + \ / 화난 눈썹 + 벌린 화난 입 + ! 배지 */
   #char.angry-mode .f-mouth-smile { display: none; }
+  #char.angry-mode .f-brows, #char.angry-mode .f-mouth-angry, #char.angry-mode #badge { display: block; }
   /* 매칭 잡힘: 놀란 O 입 */
   #char.boxing-mode .f-mouth-smile { display: none; }
   #char.boxing-mode .f-mouth-o { display: block; }
@@ -343,6 +343,11 @@
             <path d="M139 92 L121 100 L139 108" stroke="#241b38" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           </g>
         </g>
+        <!-- 화난 눈썹 \ / (안쪽이 내려온 V자) -->
+        <g class="f-brows">
+          <path d="M55 84 L82 95" stroke="#241b38" stroke-width="6" stroke-linecap="round"/>
+          <path d="M118 95 L145 84" stroke="#241b38" stroke-width="6" stroke-linecap="round"/>
+        </g>
 
         <!-- 입 -->
         <g id="mouths">
@@ -361,6 +366,10 @@
             <path d="M93 135 Q100 141 107 135" stroke="#241b38" stroke-width="4" fill="none" stroke-linecap="round"/>
           </g>
           <ellipse class="f-mouth-blow" cx="100" cy="136" rx="6" ry="7.5" fill="#6d3350" stroke="#4a2140" stroke-width="2"/><!-- 날숨 후~ -->
+          <g class="f-mouth-angry"><!-- 벌린 화난 입 + 송곳니 -->
+            <path d="M84 131 Q100 125 116 131 Q111 149 100 150 Q89 149 84 131 Z" fill="#6d3350" stroke="#4a2140" stroke-width="2"/>
+            <path d="M90 132 l4 7 4 -6 4 6 4 -7 Z" fill="#fff"/>
+          </g>
         </g>
 
         <!-- 몽실이(e1)가 두 발로 안은 여의주 (배 아래쪽, 입 아래) -->
