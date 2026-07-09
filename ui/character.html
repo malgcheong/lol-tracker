@@ -216,7 +216,6 @@
   <div id="buttons">
     <button id="btn-med">🧘 명상하고 갈래</button>
     <button id="btn-tasks" style="display:none">할 일 하러 가기</button>
-    <button id="btn-stop-med" style="display:none">명상 그만</button>
   </div>
   <div id="char">
     <svg width="200" height="215" viewBox="0 0 200 215">
@@ -648,10 +647,10 @@
     for (const g of [charaG, imugiG]) { g.style.animation = ''; g.style.transition = ''; g.style.transform = ''; }
   }
   function medUI(on) {
+    // 명상 중엔 버튼 전부 숨김 — 시작하면 끝까지 (중도 이탈 버튼 없음)
     btnMed.style.display = on ? 'none' : '';
     document.getElementById('btn-tasks').style.display = 'none';
-    document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
-    buttons.classList.toggle('show', on);
+    if (on) buttons.classList.remove('show'); // 끝나면 gate/render가 버튼 다시 관리
   }
   // 호흡 위상별 표정: 들숨=눈 뜸 / 멈춤=눈 감음 / 날숨=눈 감고 후~ 입
   function medFace() {
@@ -670,7 +669,7 @@
     applyModeRaw('sleep-mode'); // 기본은 눈 감은 얼굴 (위상이 덮어씀)
     medFace();
     medUI(true);
-    setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 준비되면 눌러서 유지해.`);
+    setLine(`명상 ${minutes}분 — 나를 <b>꾹 누르고 있는 동안만</b> 호흡이 흘러가. 끝까지 채워야 문이 열려. 준비되면 눌러.`);
   }
   function medHoldStart() {
     if (!meditating || medHolding) return;
@@ -722,16 +721,6 @@
     clearTimeout(pokeTimer);
     pokeTimer = setTimeout(() => render(lastState), 7000);
   }
-  function cancelMeditation() {
-    clearInterval(medTimer); medTimer = null;
-    medHolding = false;
-    meditating = false;
-    char.classList.remove('med-in', 'med-hold', 'med-out');
-    medRestoreBody();
-    medUI(false);
-    render(lastState);
-  }
-  document.getElementById('btn-stop-med').addEventListener('click', cancelMeditation);
   window.tracker.onMeditateStart(startMeditation);
 
   // ---- 꾹 잡기: 명상 진행 + 잡은 채 움직이면 캐릭터가 딸려옴 ----
@@ -909,7 +898,6 @@
       setLine(line);
       btnMed.style.display = '';
       document.getElementById('btn-tasks').style.display = hasTasks ? '' : 'none';
-      document.getElementById('btn-stop-med').style.display = 'none';
       buttons.classList.add('show');
     } else if (gating) {
       gating = false;
