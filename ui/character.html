@@ -90,6 +90,12 @@
   @keyframes waveArm { 0%,100%{transform:rotate(-16deg)} 50%{transform:rotate(12deg)} }
   @keyframes flail { 0%,100%{transform:rotate(-20deg)} 50%{transform:rotate(20deg)} }
 
+  /* 막아서기(guard): 버튼 위에 떡 버티고 "안 돼 안 돼" 천천히 몸 흔들기 + 팔 벌려 막기 */
+  #char.guarding #chara, #char.guarding #imugi { animation: guard 1.3s ease-in-out infinite !important; }
+  @keyframes guard { 0%,100%{transform:rotate(-4.5deg)} 50%{transform:rotate(4.5deg)} }
+  #char.guarding .arm-l { animation: none !important; transform: rotate(-58deg) translate(-4px,-8px); }
+  #char.guarding .arm-r { animation: none !important; transform: rotate(58deg) translate(4px,-8px); }
+
   /* 반짝이 */
   .spark { animation: twinkle 2.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
   .spark.s2 { animation-delay: 1.2s; }
@@ -870,6 +876,7 @@
     if (g.blocking) {
       gating = true;
       applyMode('angry-mode');
+      char.classList.add('guarding'); // 막아서기 자세 (팔 벌리고 좌우로 안 돼 안 돼)
       const hasTasks = g.verdict.violations.some((v) => v.type === 'tasks');
       let line = g.verdict.violations.map((v) => violationLine(v, 'Matchmaking')).join('<br>');
       line += hasTasks
