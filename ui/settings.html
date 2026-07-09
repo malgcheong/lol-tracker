@@ -107,6 +107,12 @@
   </div>
 
   <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+    <input id="autoLaunch" type="checkbox" style="width:auto; accent-color:#c8aa6e"> 윈도우 시작 시 자동 실행
+  </label>
+  <div class="hint">부팅 때 트레이에 조용히 상주 → 롤을 켜면 이미 지켜보는 중.<br>
+  "안 켜면 그만"인 구멍을 막는 장치예요 (디스코드·OP.GG처럼).</div>
+
+  <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
     <input id="hardMode" type="checkbox" style="width:auto; accent-color:#c8aa6e"> 하드 모드
   </label>
   <div class="hint">하루 한도를 넘기면 롤 <b>클라이언트를 강제로 닫고</b>, 다시 켜도 20초 안에 또 닫습니다 (다음날 리셋까지).<br>
@@ -135,7 +141,8 @@
       deepseekKey: $('deepseekKey').value.trim(),
       defaultTasks: $('defaultTasks').value.trim(),
       quotes: $('quotes').value.trim(),
-      meditationMinutes: Number($('meditationMinutes').value) || 3,
+      meditationMinutes: Number($('meditationMinutes').value) || 1,
+      autoLaunch: $('autoLaunch').checked,
     };
   }
 
@@ -149,6 +156,7 @@
     fields.forEach((f) => { $(f).value = s[f]; });
     $('hardMode').checked = !!s.hardMode;
     $('nightTighten').checked = !!s.nightTighten;
+    $('autoLaunch').checked = !!s.autoLaunch;
   });
 
   $('btn-test').addEventListener('click', async () => {

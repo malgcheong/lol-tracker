@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
 
+app.setName('LoL Tracker'); // 자동 실행 등록 이름 등에 표시
+
 const { RiotStats } = require('./stats/riot');
 const { buildWeeklyReport } = require('./stats/report');
 const { generateGameFeedback } = require('./ai/coach');
@@ -26,10 +28,23 @@ const DEFAULT_SETTINGS = {
   defaultTasks: '빨래, 청소, 침대 정리, 샤워, 운동', // 매일 자동 등록되는 기본 할 일 (쉼표 구분, 비우면 없음)
   quotes: '',        // 내가 적어둔 명언/다짐 (줄바꿈 구분): 캐릭터 혼잣말 + 블로커에 표시
   meditationMinutes: 1, // 명상 시간 (분) — 캐릭터를 꾹 눌러 호흡을 진행하는 방식
+  autoLaunch: false, // 윈도우 시작 시 자동 실행 (트레이 상주 → 롤 켜면 이미 지켜보는 중)
 };
 
 function quotesList() {
   return (settings.quotes || '').split('\n').map((s) => s.trim()).filter(Boolean);
+}
+
+// 윈도우 로그인 시 자동 실행 등록/해제 (자기구속 도구라 "안 켜면 그만" 구멍을 막는 핵심)
+function applyAutoLaunch(enabled) {
+  if (process.platform !== 'win32') return;
+  const opts = { openAtLogin: !!enabled };
+  if (!app.isPackaged) {
+    // 개발 모드(npm start): electron.exe로 이 앱 폴더를 열도록 경로/인자 지정
+    opts.path = process.execPath;
+    opts.args = [path.resolve(__dirname)];
+  }
+  app.setLoginItemSettings(opts);
 }
 
 let settings = { ...DEFAULT_SETTINGS };
@@ -414,6 +429,7 @@ function enforceHardMode() {
 app.whenReady().then(() => {
   createCharacterWindow();
   createTray();
+  applyAutoLaunch(settings.autoLaunch); // 설정과 실제 등록 상태 동기화
 
   if (config.mode === 'mock') {
     const { MockLcuClient } = require('./lcu/mock');
@@ -530,6 +546,7 @@ ipcMain.handle('settings-get', () => settings);
 ipcMain.handle('settings-save', (_e, next) => {
   settings = { ...settings, ...next };
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+  applyAutoLaunch(settings.autoLaunch);
   refreshStats('설정 저장');
   return { ok: true };
 });
