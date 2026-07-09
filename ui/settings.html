@@ -112,12 +112,6 @@
   <div class="hint">부팅 때 트레이에 조용히 상주 → 롤을 켜면 이미 지켜보는 중.<br>
   "안 켜면 그만"인 구멍을 막는 장치예요 (디스코드·OP.GG처럼).</div>
 
-  <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
-    <input id="hardMode" type="checkbox" style="width:auto; accent-color:#c8aa6e"> 하드 모드
-  </label>
-  <div class="hint">하루 한도를 넘기면 롤 <b>클라이언트를 강제로 닫고</b>, 다시 켜도 20초 안에 또 닫습니다 (다음날 리셋까지).<br>
-  ⚠️ 게임 중·챔피언 선택 중엔 절대 닫지 않아요 — 탈주/닷지 패널티 방지. 게임이 끝나는 순간 닫습니다.</div>
-
   <div class="btns">
     <button id="btn-test">연결 테스트</button>
     <button id="btn-save" class="primary">저장</button>
@@ -135,7 +129,6 @@
       dailyLimit: Number($('dailyLimit').value),
       lossStreakLimit: Number($('lossStreakLimit').value),
       dayResetHour: Number($('dayResetHour').value),
-      hardMode: $('hardMode').checked,
       nightTighten: $('nightTighten').checked,
       nightStartHour: Number($('nightStartHour').value),
       deepseekKey: $('deepseekKey').value.trim(),
@@ -154,7 +147,6 @@
 
   window.tracker.getSettings().then((s) => {
     fields.forEach((f) => { $(f).value = s[f]; });
-    $('hardMode').checked = !!s.hardMode;
     $('nightTighten').checked = !!s.nightTighten;
     $('autoLaunch').checked = !!s.autoLaunch;
   });

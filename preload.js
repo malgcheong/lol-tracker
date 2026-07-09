@@ -12,8 +12,8 @@ contextBridge.exposeInMainWorld('tracker', {
   moveBy: (dx, dy) => ipcRenderer.send('char-move-by', { dx, dy }),
   showMenu: () => ipcRenderer.send('char-menu'),
 
-  // 블로커 (플레이 버튼 덮기)
-  onBlock: (cb) => ipcRenderer.on('block', (_e, v) => cb(v)),
+  // 게이트 (캐릭터가 버튼 위로 가서 막기)
+  onGate: (cb) => ipcRenderer.on('gate', (_e, g) => cb(g)),
   forceThrough: () => ipcRenderer.send('force-through'),
 
   // 조종판 (mock 전용)

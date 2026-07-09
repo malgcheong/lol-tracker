@@ -205,6 +205,7 @@
   <div id="buttons">
     <button id="btn-snooze">15분 쉴게</button>
     <button id="btn-med">🧘 명상할래</button>
+    <button id="btn-ok" style="display:none">알겠어</button>
     <button id="btn-stop-med" style="display:none">명상 그만</button>
   </div>
   <div id="char">
@@ -466,6 +467,7 @@
   const charaG = document.getElementById('chara');
   const imugiG = document.getElementById('imugi');
   let forcedThrough = false; // (블로커의 '알겠어'는 main이 관리 — 캐릭터 잔소리는 계속됨)
+  let gating = false;        // 지금 버튼을 막는 중(캐릭터가 버튼 위에 앉음)
   let meditating = false;    // 명상 중엔 다른 상태 갱신을 잠시 무시
   let lastState = { phase: 'None', verdict: { hasData: false, violations: [], stats: null, error: null }, orbs: 0 };
   let pokeTimer = null;
@@ -503,7 +505,7 @@
   // ---- 상태 렌더링 ----
   function render(state) {
     lastState = state;
-    if (meditating) return; // 명상 중엔 화면 갱신 보류 (끝나면 lastState로 복귀)
+    if (meditating || gating) return; // 명상/막는 중엔 화면 갱신 보류
     clearTimeout(pokeTimer);
     const { phase, verdict } = state;
     const bad = verdict.violations.length > 0;
@@ -620,6 +622,7 @@
   function medUI(on) {
     btnMed.style.display = on ? 'none' : '';
     document.getElementById('btn-snooze').style.display = on ? 'none' : '';
+    document.getElementById('btn-ok').style.display = 'none';
     document.getElementById('btn-stop-med').style.display = on ? 'block' : 'none';
     buttons.classList.toggle('show', on);
   }
@@ -859,6 +862,32 @@
   // 개입 순간의 명상 제안: 틸트 한복판이 명상이 제일 필요한 순간
   btnMed.addEventListener('click', () => {
     window.tracker.openMeditation();
+  });
+
+  // 알겠어 = 이번 로비 세션 동안 비켜줌 (main이 캐릭터를 집으로 되돌림)
+  document.getElementById('btn-ok').addEventListener('click', () => {
+    window.tracker.forceThrough();
+  });
+
+  // 캐릭터가 버튼 위로 가서 막는 중 (main이 창 위치를 옮김)
+  window.tracker.onGate((g) => {
+    if (meditating) return;
+    if (g.blocking) {
+      gating = true;
+      applyMode('angry-mode');
+      let line = g.verdict.violations.map((v) => violationLine(v, 'Matchmaking')).join('<br>');
+      if (g.quote) line += `<br><span style="opacity:.8">"${g.quote}"</span>`;
+      setLine(line);
+      document.getElementById('btn-snooze').style.display = '';
+      btnMed.style.display = '';
+      document.getElementById('btn-ok').style.display = '';
+      document.getElementById('btn-stop-med').style.display = 'none';
+      buttons.classList.add('show');
+    } else if (gating) {
+      gating = false;
+      buttons.classList.remove('show');
+      render(lastState);
+    }
   });
 
   // 여의주 획득(마일스톤 돌파) 연출: 연속 7/14/28일 달성

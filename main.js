@@ -23,7 +23,6 @@ const DEFAULT_SETTINGS = {
   dailyLimit: 5,     // 하루 판수 한도 (이만큼 하면 개입, 0 = 끔)
   lossStreakLimit: 2,// 연패 한도 (이만큼 연패면 개입, 0 = 끔)
   dayResetHour: 5,   // '오늘'이 리셋되는 시각. 새벽 5시 전 게임은 전날로 (심야 롤은 오늘에 누적)
-  hardMode: false,   // 하드 모드: 하루 한도 초과 시 롤 클라이언트 강제 종료 + 재실행 감시
   nightTighten: true,// 심야 가중: 심야엔 판수/연패 한도 -1 (낮 3연패 ≠ 새벽 3연패)
   nightStartHour: 23,// 심야 시작 시각 (여기부터 dayResetHour까지가 심야)
   deepseekKey: '',   // DeepSeek API 키 (선택): 넣으면 게임 끝날 때마다 AI가 판 피드백 한마디 (게임당 1콜)
@@ -98,7 +97,6 @@ let snoozeUntil = 0;
 let lastNearMissId = null;  // 타임라인 검사를 이미 한 판 (재검사 방지)
 let nearMissFiredId = null; // 실제로 역전패 경고가 나간 판
 let lastFeedbackId = null;  // AI 피드백이 나간 판 (게임당 1콜 보장)
-let blockerWin = null;
 let forcedThroughMain = false; // 이번 로비 세션 동안 "그래도 할래"로 뚫었는지
 
 // ---- 위반 판단 (개입 트리거, 핸드오프 문서 6-1) ----
@@ -177,18 +175,8 @@ function findClientRect() {
   });
 }
 
-function ensureBlockerWindow() {
-  if (blockerWin && !blockerWin.isDestroyed()) return;
-  blockerWin = new BrowserWindow({
-    width: 380, height: 260,
-    transparent: true, frame: false, resizable: false,
-    alwaysOnTop: true, skipTaskbar: true, hasShadow: false, show: false,
-    webPreferences: { preload: path.join(__dirname, 'preload.js') },
-  });
-  blockerWin.setAlwaysOnTop(true, 'screen-saver');
-  blockerWin.loadFile(path.join(__dirname, 'ui', 'block.html'));
-}
-
+// 캐릭터가 직접 게임 찾기 버튼 위로 가서 몸으로 막는다 (별도 패널 없이).
+// 캐릭터 창은 클릭이 통과되지 않으므로, 버튼 위에 얹으면 그 영역 클릭이 캐릭터에 먹혀 버튼이 안 눌림.
 async function updateBlocker() {
   const v = computeVerdict();
   const shouldBlock =
@@ -198,30 +186,24 @@ async function updateBlocker() {
     Date.now() >= snoozeUntil;
 
   if (!shouldBlock) {
-    if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide();
+    returnCharacterHome();
+    broadcast('gate', { blocking: false });
     return;
   }
 
-  const rect = await findClientRect();
-  if (!rect) {
-    // 클라 창을 못 찾으면 버튼을 못 덮음 → 캐릭터 잔소리(character.html)로 폴백
-    console.log('[blocker] 롤 클라 창을 못 찾음 (창 제목 "League of Legends" 탐색 실패)');
-    if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide();
-    return;
-  }
-
-  ensureBlockerWindow();
-  const bw = 380, bh = 260;
-  // "게임 찾기" 버튼 = 로비 화면 하단 중앙. 그 위에 얹는다.
-  const bx = Math.round(rect.x + rect.w / 2 - bw / 2);
-  const by = Math.round(rect.y + rect.h - bh - 16);
-  console.log(`[blocker] 클라 창 (${rect.x},${rect.y}) ${rect.w}x${rect.h} → 블로커 (${bx},${by}) ${bw}x${bh}`);
-  blockerWin.setBounds({ x: bx, y: by, width: bw, height: bh });
-  blockerWin.showInactive(); // 포커스는 뺏지 않되 위에 뜸
-  // 차단당하는 순간, 내가 적어둔 다짐을 같이 보여줌 (제일 아픈 잔소리는 내 글씨)
   const q = quotesList();
-  v.quote = q.length ? q[Math.floor(Math.random() * q.length)] : null;
-  blockerWin.webContents.send('block', v);
+  const quote = q.length ? q[Math.floor(Math.random() * q.length)] : null;
+
+  if (config.mode === 'real') {
+    const rect = await findClientRect();
+    if (rect) {
+      moveCharacterToButton(rect); // 캐릭터가 버튼 위로 이동해 물리적으로 덮음
+    } else {
+      // 클라 창을 못 찾으면 위치는 못 잡아도, 제자리에서 강하게 막는 표정+대사는 유지
+      console.log('[gate] 롤 클라 창을 못 찾음 (제자리에서 잔소리로 폴백)');
+    }
+  }
+  broadcast('gate', { blocking: true, verdict: v, quote });
 }
 
 function pushState() {
@@ -320,11 +302,14 @@ async function refreshStats(reason) {
 }
 
 // ---- 창들 ----
+const CHAR_W = 360, CHAR_H = 480;
+let charHome = { x: 0, y: 0 }; // 평소 정착 위치 (우하단). 막을 땐 버튼 위로 갔다가 여기로 복귀
 function createCharacterWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  charHome = { x: width - CHAR_W - 20, y: height - CHAR_H - 20 };
   characterWin = new BrowserWindow({
-    width: 360, height: 480,
-    x: width - 380, y: height - 500,
+    width: CHAR_W, height: CHAR_H,
+    x: charHome.x, y: charHome.y,
     transparent: true, frame: false, resizable: false,
     alwaysOnTop: true, skipTaskbar: true, hasShadow: false,
     show: config.mode === 'mock', // real 모드는 롤 클라 켜질 때만 등장 (mock은 항상 보임)
@@ -332,6 +317,23 @@ function createCharacterWindow() {
   });
   characterWin.setAlwaysOnTop(true, 'screen-saver');
   characterWin.loadFile(path.join(__dirname, 'ui', 'character.html'));
+}
+
+let charAtButton = false; // 캐릭터가 지금 버튼 위(막는 중)인지
+function moveCharacterToButton(rect) {
+  if (!characterWin || characterWin.isDestroyed()) return;
+  // 게임 찾기 버튼 = 로비 하단 중앙. 캐릭터 몸(창 하단 중앙부)이 버튼을 덮도록 창을 얹는다.
+  const bx = Math.round(rect.x + rect.w / 2 - CHAR_W / 2);
+  const by = Math.round(rect.y + rect.h - CHAR_H + 70);
+  console.log(`[gate] 캐릭터를 버튼 위로: 클라(${rect.x},${rect.y} ${rect.w}x${rect.h}) → 캐릭터(${bx},${by})`);
+  characterWin.setBounds({ x: bx, y: by, width: CHAR_W, height: CHAR_H });
+  if (!characterWin.isVisible()) characterWin.showInactive();
+  charAtButton = true;
+}
+function returnCharacterHome() {
+  if (!characterWin || characterWin.isDestroyed() || !charAtButton) return;
+  characterWin.setBounds({ x: charHome.x, y: charHome.y, width: CHAR_W, height: CHAR_H });
+  charAtButton = false;
 }
 
 // 롤 클라 유무에 따라 캐릭터를 등장/퇴장 (평소엔 트레이만, 롤 켜면 나타남)
@@ -418,23 +420,6 @@ function createTray() {
   tray.on('click', openSettingsWindow);
 }
 
-// ---- 하드 모드: 한도 초과 시 롤 클라이언트 강제 종료 + 워치독 ----
-// 안전 수칙: 인게임·챔피언 선택 중엔 절대 안 닫음 (탈주/닷지 패널티). 로비 계열 phase에서만.
-// 로비 클라를 닫는 건 그냥 창 닫기라 패널티·밴 위험 없음.
-const KILL_SAFE_PHASES = ['None', 'Lobby', 'Matchmaking', 'ReadyCheck', 'EndOfGame', 'WaitingForStats', 'PreEndOfGame'];
-function enforceHardMode() {
-  if (!settings.hardMode || config.mode === 'mock') return;
-  const v = computeVerdict();
-  if (!v.violations.some((x) => x.type === 'daily')) return; // 하드 모드는 판수 한도만 (연패는 마찰로)
-  if (!KILL_SAFE_PHASES.includes(lastPhase)) return; // 게임 중이면 끝날 때까지 대기
-  exec('taskkill /F /IM LeagueClient.exe /T', (err) => {
-    if (!err) {
-      console.log('[hard] 한도 초과 → 롤 클라이언트 종료');
-      broadcast('status', '하드 모드: 오늘 한도 소진 → 클라이언트 닫음');
-    }
-  });
-}
-
 // ---- 시작 ----
 app.whenReady().then(() => {
   createCharacterWindow();
@@ -455,7 +440,6 @@ app.whenReady().then(() => {
     console.log(`[gameflow-phase] ${phase}`); // 실제 클라에서 phase 이름 확인용
     // 로비/매칭 구간을 벗어나면 "그래도 할래" 통과 상태 초기화 (다음 세션에 다시 막게)
     if (!['Lobby', 'Matchmaking'].includes(phase)) forcedThroughMain = false;
-    enforceHardMode(); // 게임이 끝나 안전한 phase로 돌아오는 순간 바로 집행
     pushState();
     // 게임 끝났으면 잠시 후 전적 갱신 (기록이 올라오는 데 시간이 걸림 - CCTV 녹화본)
     if (phase === 'EndOfGame' && config.mode === 'real') {
@@ -482,7 +466,6 @@ app.whenReady().then(() => {
   // real 모드에서만 주기 갱신. mock 모드에선 조종판의 가짜 통계를 덮어쓰지 않도록 안 돌림.
   if (config.mode === 'real') {
     setInterval(() => refreshStats('주기'), 5 * 60 * 1000);
-    setInterval(enforceHardMode, 20 * 1000); // 워치독: 클라 다시 켜도 20초 안에 또 닫힘
   }
 
   if (firstRun || !settings.apiKey) openSettingsWindow();
@@ -646,20 +629,19 @@ ipcMain.on('char-move-by', (_e, { dx, dy }) => {
 
 ipcMain.on('snooze', (_e, minutes) => {
   snoozeUntil = Date.now() + minutes * 60 * 1000;
-  if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide(); // 버튼 즉시 열어줌
-  broadcast('state', { phase: 'Snoozing', verdict: computeVerdict(), orbs: orbState.orbs });
+  returnCharacterHome(); // 캐릭터가 버튼에서 비켜줌
+  broadcast('state', { phase: 'Snoozing', verdict: computeVerdict(), orbs: orbsOf(orbState.streak), streak: orbState.streak });
   setTimeout(() => {
     snoozeUntil = 0;
     pushState(); // 스누즈 끝나면 현재 상태 재체크 (아직 로비면 다시 막음)
   }, minutes * 60 * 1000);
 });
 
-// "그래도 할래" 3번 뚫음 → 이번 로비 세션 동안 블로커 해제
+// "알겠어" → 이번 로비 세션 동안 캐릭터가 버튼에서 비켜줌 (다음 세션에 다시 막음)
 ipcMain.on('force-through', () => {
   forcedThroughMain = true;
-  if (blockerWin && !blockerWin.isDestroyed()) blockerWin.hide();
+  returnCharacterHome();
+  broadcast('gate', { blocking: false });
 });
-
-app.on('before-quit', () => { if (blockerWin && !blockerWin.isDestroyed()) blockerWin.destroy(); });
 
 app.on('window-all-closed', () => app.quit());
