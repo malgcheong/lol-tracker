@@ -224,6 +224,7 @@ async function updateBlocker() {
     !forcedThroughMain;
 
   if (!shouldBlock) {
+    stopGateFollow();
     returnCharacterHome();
     broadcast('gate', { blocking: false });
     return;
@@ -240,8 +241,27 @@ async function updateBlocker() {
       // 클라 창을 못 찾으면 위치는 못 잡아도, 제자리에서 강하게 막는 표정+대사는 유지
       console.log('[gate] 롤 클라 창을 못 찾음 (제자리에서 잔소리로 폴백)');
     }
+    startGateFollow(); // 막는 동안 클라 위치 추적 → 클라 옮겨도 방패가 따라붙음
   }
   broadcast('gate', { blocking: true, verdict: v, quote });
+}
+
+// 막는 동안 롤 클라 위치를 주기적으로 따라가며 방패를 다시 얹는다 (클라 이동/최대화 대응)
+let gateFollow = null, gateFollowBusy = false;
+function startGateFollow() {
+  if (gateFollow) return;
+  gateFollow = setInterval(async () => {
+    if (gateFollowBusy) return;
+    gateFollowBusy = true;
+    try {
+      const rect = await findClientRect();
+      if (rect) moveCharacterToButton(rect);
+    } catch {}
+    gateFollowBusy = false;
+  }, 800);
+}
+function stopGateFollow() {
+  if (gateFollow) { clearInterval(gateFollow); gateFollow = null; }
 }
 
 function pushState() {
@@ -670,6 +690,7 @@ ipcMain.on('char-move-by', (_e, { dx, dy }) => {
 // "알겠어" → 이번 로비 세션 동안 캐릭터가 버튼에서 비켜줌 (다음 세션에 다시 막음)
 ipcMain.on('force-through', () => {
   forcedThroughMain = true;
+  stopGateFollow();
   returnCharacterHome();
   broadcast('gate', { blocking: false });
 });
