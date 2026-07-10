@@ -4,7 +4,7 @@ const { app, BrowserWindow, Tray, Menu, ipcMain, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-const { exec } = require('child_process');
+const { exec, spawn } = require('child_process');
 
 // 롤 클라 창 찾기 PowerShell (열린 창 전부 훑어 프로세스명/제목으로 매칭 + 후보 로그)
 const PS_FIND_FILE = path.join(os.tmpdir(), 'loltracker_findwin.ps1');
@@ -44,6 +44,47 @@ $m=$found|Where-Object{$_.PN -eq 'LeagueClientUx'}|Select-Object -First 1
 if(-not $m){$m=$found|Where-Object{$_.T -like '*League of Legends*'}|Select-Object -First 1}
 if($m){Write-Output ("HIT|"+$m.L+","+$m.TP+","+$m.W+","+$m.H)}
 $found|ForEach-Object{Write-Output ("CAND|"+$_.PN+" | "+$_.T+" | "+$_.W+"x"+$_.H)}
+`;
+
+// 막는 동안 클라 좌표를 실시간 스트리밍하는 PowerShell (한 번만 띄워두고 계속 출력 → 빠른 추적)
+const PS_FOLLOW_FILE = path.join(os.tmpdir(), 'loltracker_follow.ps1');
+const PS_FOLLOW_SCRIPT = `
+Add-Type @"
+using System;using System.Text;using System.Runtime.InteropServices;
+public class WinF{
+ public delegate bool EP(IntPtr h,IntPtr l);
+ [DllImport("user32.dll")]public static extern bool EnumWindows(EP cb,IntPtr l);
+ [DllImport("user32.dll")]public static extern bool IsWindowVisible(IntPtr h);
+ [DllImport("user32.dll")]public static extern int GetWindowText(IntPtr h,StringBuilder s,int n);
+ [DllImport("user32.dll")]public static extern void GetWindowThreadProcessId(IntPtr h,out uint p);
+ [DllImport("user32.dll")]public static extern bool GetWindowRect(IntPtr h,out RC r);
+ public struct RC{public int L;public int T;public int R;public int B;}
+}
+"@
+while($true){
+ $found=New-Object System.Collections.ArrayList
+ $cb=[WinF+EP]{
+  param($h,$l)
+  if([WinF]::IsWindowVisible($h)){
+   $sb=New-Object System.Text.StringBuilder 256
+   [void][WinF]::GetWindowText($h,$sb,256)
+   $procId=0
+   [WinF]::GetWindowThreadProcessId($h,[ref]$procId)
+   $pn=""
+   try{$pn=(Get-Process -Id $procId -ErrorAction Stop).ProcessName}catch{}
+   $r=New-Object WinF+RC
+   [void][WinF]::GetWindowRect($h,[ref]$r)
+   $w=$r.R-$r.L;$hh=$r.B-$r.T
+   if($w -gt 400 -and $hh -gt 300){[void]$found.Add([pscustomobject]@{PN=$pn;T=$sb.ToString();L=$r.L;TP=$r.T;W=$w;H=$hh})}
+  }
+  return $true
+ }
+ [void][WinF]::EnumWindows($cb,[IntPtr]::Zero)
+ $m=$found|Where-Object{$_.PN -eq 'LeagueClientUx'}|Select-Object -First 1
+ if(-not $m){$m=$found|Where-Object{$_.T -like '*League of Legends*'}|Select-Object -First 1}
+ if($m){[Console]::Out.WriteLine("R|"+$m.L+","+$m.TP+","+$m.W+","+$m.H);[Console]::Out.Flush()}
+ Start-Sleep -Milliseconds 150
+}
 `;
 
 app.setName('LoL Tracker'); // 자동 실행 등록 이름 등에 표시
@@ -246,22 +287,26 @@ async function updateBlocker() {
   broadcast('gate', { blocking: true, verdict: v, quote });
 }
 
-// 막는 동안 롤 클라 위치를 주기적으로 따라가며 방패를 다시 얹는다 (클라 이동/최대화 대응)
-let gateFollow = null, gateFollowBusy = false;
+// 막는 동안 클라 좌표를 실시간 스트리밍 받아 방패를 따라 붙인다 (PS 1개 상주 → ~150ms 추적)
+let gateProc = null;
 function startGateFollow() {
-  if (gateFollow) return;
-  gateFollow = setInterval(async () => {
-    if (gateFollowBusy) return;
-    gateFollowBusy = true;
-    try {
-      const rect = await findClientRect();
-      if (rect) moveCharacterToButton(rect);
-    } catch {}
-    gateFollowBusy = false;
-  }, 800);
+  if (gateProc || config.mode !== 'real') return;
+  try { fs.writeFileSync(PS_FOLLOW_FILE, PS_FOLLOW_SCRIPT); } catch {}
+  gateProc = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', PS_FOLLOW_FILE]);
+  let buf = '';
+  gateProc.stdout.on('data', (d) => {
+    buf += d.toString();
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      const m = line.startsWith('R|') && line.slice(2).match(/(-?\d+),(-?\d+),(\d+),(\d+)/);
+      if (m) moveCharacterToButton({ x: +m[1], y: +m[2], w: +m[3], h: +m[4] });
+    }
+  });
+  gateProc.on('close', () => { gateProc = null; });
 }
 function stopGateFollow() {
-  if (gateFollow) { clearInterval(gateFollow); gateFollow = null; }
+  if (gateProc) { try { gateProc.kill(); } catch {} gateProc = null; }
 }
 
 function pushState() {
@@ -378,11 +423,15 @@ function createCharacterWindow() {
 
 const BLOCK_W = 560; // 막을 땐 창을 넓혀 버튼 주변 클릭을 전부 삼킴 (좌우로 비켜 눌러도 안 먹히게)
 let charAtButton = false; // 캐릭터가 지금 버튼 위(막는 중)인지
+let lastBlockX = null, lastBlockY = null; // 스트리밍 추적 중 위치 변화 감지용
 function moveCharacterToButton(rect) {
   if (!characterWin || characterWin.isDestroyed()) return;
   // 게임 찾기 버튼 = 로비 하단 중앙. 넓은 캐릭터 창(방패)으로 버튼을 덮는다.
   const bx = Math.round(rect.x + rect.w / 2 - BLOCK_W / 2);
   const by = Math.round(rect.y + rect.h - CHAR_H + 70);
+  // 위치가 실제로 바뀔 때만 갱신 (스트리밍 추적이라 매 프레임 setBounds 방지 + 로그 스팸 방지)
+  if (charAtButton && bx === lastBlockX && by === lastBlockY) return;
+  lastBlockX = bx; lastBlockY = by;
   console.log(`[gate] 버튼 방패: 클라(${rect.x},${rect.y} ${rect.w}x${rect.h}) → 창(${bx},${by} ${BLOCK_W}x${CHAR_H})`);
   characterWin.setBounds({ x: bx, y: by, width: BLOCK_W, height: CHAR_H });
   if (!characterWin.isVisible()) characterWin.showInactive();
@@ -392,6 +441,7 @@ function returnCharacterHome() {
   if (!characterWin || characterWin.isDestroyed() || !charAtButton) return;
   characterWin.setBounds({ x: charHome.x, y: charHome.y, width: CHAR_W, height: CHAR_H });
   charAtButton = false;
+  lastBlockX = lastBlockY = null;
 }
 
 // 롤 클라 유무에 따라 캐릭터를 등장/퇴장 (평소엔 트레이만, 롤 켜면 나타남)
@@ -695,4 +745,5 @@ ipcMain.on('force-through', () => {
   broadcast('gate', { blocking: false });
 });
 
+app.on('before-quit', stopGateFollow); // 상주 PowerShell 정리
 app.on('window-all-closed', () => app.quit());
