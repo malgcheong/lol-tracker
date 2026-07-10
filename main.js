@@ -517,8 +517,24 @@ function appMenuTemplate() {
     { label: '주간 리포트', click: openReportWindow },
     { label: '통계 새로고침', click: () => refreshStats('수동') },
     { type: 'separator' },
-    { label: '종료', click: () => app.quit() },
+    { label: '종료', click: openQuitWindow },
   ];
+}
+
+// 종료 = 최후의 탈출구. 긴 명언을 직접 타이핑해야만 꺼짐 (아무 생각 없이 못 끄게)
+const DEFAULT_QUIT_TEXT =
+  '나는 지금 이 트래커를 끄려 한다. 이건 나와의 약속을 깨는 유일한 방법이고, ' +
+  '끄고 나면 아무도 나를 막지 않는다. 연패도 심야도 판수도, 오늘의 나를 지켜줄 사람은 나뿐이다. ' +
+  '그래도 끌 이유가 있는지 한 번만 더 생각하고, 그래도 끈다면 내 선택에 책임진다.';
+function quitChallengeText() {
+  const q = quotesList();
+  return q.length ? q.join('\n') : DEFAULT_QUIT_TEXT;
+}
+let quitWin = null;
+function openQuitWindow() {
+  if (quitWin && !quitWin.isDestroyed()) { quitWin.focus(); return; }
+  quitWin = createGlassWindow(460, 460, 'quit.html');
+  quitWin.on('closed', () => { quitWin = null; });
 }
 
 function createTray() {
@@ -614,6 +630,13 @@ ipcMain.on('mock-day-keep', () => { // 하루 성공 연출
 ipcMain.on('mock-day-fail', () => { // 실패(리셋) 연출
   orbState.streak = 0;
   broadcast('streak-reset', 0);
+});
+
+// 종료 확인: 도전 문장 제공 + 정확히 타이핑하면 종료
+ipcMain.handle('quit-get', () => quitChallengeText());
+ipcMain.on('quit-confirm', (_e, typed) => {
+  const norm = (s) => String(s).split('\n').map((l) => l.trim()).join('\n').trim();
+  if (norm(typed) === norm(quitChallengeText())) app.quit();
 });
 
 // 캐릭터 우클릭 메뉴

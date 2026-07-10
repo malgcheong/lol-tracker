@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('tracker', {
   setTasks: (items) => ipcRenderer.invoke('tasks-set', items),
   onTasksDone: (cb) => ipcRenderer.on('tasks-done', (_e, n) => cb(n)),
 
+  getQuitText: () => ipcRenderer.invoke('quit-get'),
+  confirmQuit: (typed) => ipcRenderer.send('quit-confirm', typed),
+
   getSettings: () => ipcRenderer.invoke('settings-get'),
   getReport: () => ipcRenderer.invoke('report-get'),
   saveSettings: (s) => ipcRenderer.invoke('settings-save', s),

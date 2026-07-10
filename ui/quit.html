@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>종료</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: 'Malgun Gothic', sans-serif; padding: 0 20px 20px; margin: 0;
+         background: rgba(16, 13, 27, .66); color: #f0e6d2; height: 100vh; overflow-y: auto; }
+  #titlebar { -webkit-app-region: drag; display: flex; justify-content: space-between; align-items: center;
+              margin: 0 -20px 10px; padding: 12px 10px 8px 20px; }
+  #titlebar .t { font-size: 12px; color: #c8aa6e; letter-spacing: .5px; }
+  #win-close { -webkit-app-region: no-drag; width: 30px; height: 26px; border: none; border-radius: 6px;
+               background: transparent; color: #a09b8c; font-size: 14px; cursor: pointer; }
+  #win-close:hover { background: rgba(200, 60, 60, .75); color: #fff; }
+  h1 { font-size: 16px; margin: 0 0 6px; color: #e08a8a; }
+  .sub { font-size: 12px; color: #a09b8c; margin-bottom: 14px; line-height: 1.5; }
+  .target {
+    background: rgba(200, 170, 110, .1); border: 1px solid rgba(200, 170, 110, .3); border-radius: 10px;
+    padding: 12px 14px; font-size: 13px; line-height: 1.7; color: #e8d9ae; margin-bottom: 12px;
+    user-select: none; /* 복붙 방지 */
+  }
+  textarea {
+    width: 100%; height: 110px; padding: 10px 12px; font-size: 13px; line-height: 1.7; font-family: inherit; resize: none;
+    background: rgba(0, 0, 0, .35); color: #f0e6d2; border: 1px solid rgba(200, 170, 110, .4); border-radius: 8px;
+  }
+  textarea:focus { outline: none; border-color: #c8aa6e; }
+  #hint { font-size: 11px; margin: 6px 2px 0; color: #a09b8c; min-height: 15px; }
+  #hint.ok { color: #8fd18b; }
+  .btns { display: flex; gap: 10px; margin-top: 14px; }
+  .btns button { flex: 1; padding: 11px; font-size: 14px; cursor: pointer; border-radius: 8px; }
+  #cancel { background: rgba(255,255,255,.07); color: #f0e6d2; border: 1px solid rgba(200,170,110,.4); }
+  #cancel:hover { background: rgba(200,170,110,.25); }
+  #quit { background: rgba(120, 40, 40, .5); color: #f0c8c8; border: 1px solid #8a3a3a; }
+  #quit:enabled { background: #b23a3a; color: #fff; }
+  #quit:disabled { opacity: .45; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <div id="titlebar">
+    <span class="t">🐉 LoL TRACKER</span>
+    <button id="win-close">✕</button>
+  </div>
+  <h1>정말 트래커를 끌까?</h1>
+  <div class="sub">이걸 끄면 오늘 아무도 널 막지 않아. 그래도 끄려면 아래 문장을 <b>그대로 타이핑</b>해줘. (복붙 안 됨)</div>
+
+  <div class="target" id="target">불러오는 중...</div>
+  <textarea id="input" placeholder="여기에 위 문장을 똑같이 입력..." spellcheck="false"></textarea>
+  <div id="hint"></div>
+
+  <div class="btns">
+    <button id="cancel">역시 안 끌래</button>
+    <button id="quit" disabled>종료</button>
+  </div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  let target = '';
+  const norm = (s) => s.split('\n').map((l) => l.trim()).join('\n').trim();
+
+  window.tracker.getQuitText().then((t) => { target = t; $('target').textContent = t; });
+
+  $('input').addEventListener('input', () => {
+    const match = norm($('input').value) === norm(target) && target;
+    $('quit').disabled = !match;
+    if (!$('input').value) { $('hint').textContent = ''; $('hint').className = ''; }
+    else if (match) { $('hint').textContent = '✓ 일치 — 종료할 수 있어'; $('hint').className = 'ok'; }
+    else { $('hint').textContent = '아직 문장이 정확히 일치하지 않아'; $('hint').className = ''; }
+  });
+  // 붙여넣기 차단 (직접 타이핑 강제)
+  $('input').addEventListener('paste', (e) => e.preventDefault());
+
+  $('quit').addEventListener('click', () => window.tracker.confirmQuit($('input').value));
+  $('cancel').addEventListener('click', () => window.close());
+  $('win-close').addEventListener('click', () => window.close());
+</script>
+</body>
+</html>
