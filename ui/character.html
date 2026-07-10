@@ -217,7 +217,7 @@
   <div id="bubble"></div>
   <div id="buttons">
     <button id="btn-med">🧘 명상하고 갈래</button>
-    <button id="btn-tasks" style="display:none">할 일 하러 가기</button>
+    <button id="btn-tasks" style="display:none">할 일 하러 가기 (롤 끔)</button>
   </div>
   <div id="char">
     <svg width="200" height="215" viewBox="0 0 200 215">
@@ -898,9 +898,9 @@
   btnMed.addEventListener('click', () => {
     window.tracker.openMeditation();
   });
-  // 할 일 하러 가기: 오늘 할 일 창을 열어줌 (다 끝내면 게이트 자동 해제)
+  // 할 일 하러 가기: 롤 클라를 끄고 할 일 창을 열어줌 (다 끝내면 게이트 자동 해제)
   document.getElementById('btn-tasks').addEventListener('click', () => {
-    window.tracker.openTasks();
+    window.tracker.goDoTasks();
   });
 
   // 캐릭터가 버튼 위로 가서 막는 중 (main이 창 위치를 옮김)

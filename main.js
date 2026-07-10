@@ -652,6 +652,15 @@ ipcMain.on('meditation-done', () => console.log('[meditation] 완료'));
 
 // 오늘의 할 일
 ipcMain.on('open-tasks', openTasksWindow);
+// "할 일 하러 가기": 롤 클라를 닫아 유혹 제거 + 할 일 창 열기 (로비/매칭 중이라 패널티 없음)
+ipcMain.on('go-do-tasks', () => {
+  if (config.mode === 'real' && ['Lobby', 'Matchmaking'].includes(lastPhase)) {
+    exec('taskkill /F /IM LeagueClient.exe /T & taskkill /F /IM LeagueClientUx.exe /T', () => {
+      console.log('[gate] 할 일 하러 가기 → 롤 클라 종료');
+    });
+  }
+  openTasksWindow();
+});
 ipcMain.handle('tasks-get', () => todayTasks());
 ipcMain.handle('tasks-set', (_e, items) => {
   const t = todayTasks();

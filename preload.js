@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('tracker', {
   onMeditateStart: (cb) => ipcRenderer.on('meditate-start', (_e, min) => cb(min)),
 
   openTasks: () => ipcRenderer.send('open-tasks'),
+  goDoTasks: () => ipcRenderer.send('go-do-tasks'), // 롤 끄고 할 일 창 열기
   getTasks: () => ipcRenderer.invoke('tasks-get'),
   setTasks: (items) => ipcRenderer.invoke('tasks-set', items),
   onTasksDone: (cb) => ipcRenderer.on('tasks-done', (_e, n) => cb(n)),
